@@ -1,0 +1,109 @@
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+:root {
+    --bg-color: #F5F5F7;
+    --card-color: #FFFFFF;
+    --text-main: #1D1D1F;
+    --text-sub: #86868B;
+    --brand-color: #f9a063;
+    --brand-hover: #e08e55;
+    --success-green: #34C759;
+    --danger-color: #FF3B30;
+    --border-color: #E5E5EA;
+    --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 스크롤바 숨김 */
+::-webkit-scrollbar { display: none; }
+body {
+    width: 380px; height: 600px;
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif !important;
+    margin: 0; background-color: var(--bg-color); color: var(--text-main);
+    overflow: hidden; -ms-overflow-style: none; scrollbar-width: none;
+}
+
+.app-container { padding: 20px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
+
+/* Header & Toggle */
+header { display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; flex-shrink: 0; }
+.header-top { display: flex; justify-content: space-between; align-items: center; }
+.title-area { display: flex; align-items: center; gap: 8px; }
+h2 { font-size: 20px; font-weight: 700; margin: 0; }
+.badge { background: var(--text-main); color: white; font-size: 10px; padding: 3px 6px; border-radius: 6px; font-weight: 700; }
+
+.toggle-wrapper { display: flex; align-items: center; gap: 8px; }
+.toggle-label { font-size: 12px; color: var(--text-sub); font-weight: 600; }
+
+/* Switch Style */
+.switch { position: relative; display: inline-block; width: 40px; height: 22px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #E5E5EA; transition: .3s; border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+input:checked + .slider { background-color: var(--success-green); }
+input:checked + .slider:before { transform: translateX(18px); }
+
+.switch.small { width: 34px; height: 20px; }
+.switch.small .slider:before { height: 16px; width: 16px; left: 2px; bottom: 2px; }
+.switch.small input:checked + .slider:before { transform: translateX(14px); }
+
+/* Buttons */
+.btn-primary { background-color: var(--brand-color); color: white; border: none; border-radius: 12px; padding: 10px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%; transition: all 0.2s; }
+.btn-primary:hover { background-color: var(--brand-hover); }
+.btn-secondary { background-color: var(--card-color); color: var(--brand-color); border: 1px solid var(--brand-color); border-radius: 12px; padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; display: flex; justify-content: center; width: 100%; flex-shrink: 0; }
+
+/* [신규] 초기화 아이콘 버튼 스타일 */
+.btn-reset {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 10px;
+    width: 42px; /* 정사각형에 가깝게 */
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-sub);
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+.btn-reset:hover {
+    background-color: #f0f0f0;
+    color: var(--text-main);
+    border-color: #d1d1d6;
+}
+.btn-reset:active { transform: scale(0.95); }
+
+/* List */
+.section-title { font-size: 13px; color: var(--text-sub); margin: 20px 0 8px 4px; font-weight: 600; flex-shrink: 0; }
+.site-list { overflow-y: auto; flex-grow: 1; min-height: 200px; margin-bottom: 10px; }
+
+.site-item { background: var(--card-color); padding: 14px; border-radius: 12px; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+.site-info { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.site-name { font-size: 15px; font-weight: 600; color: var(--text-main); margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site-url { font-size: 11px; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
+.site-url:hover { color: var(--brand-color); text-decoration: underline; }
+
+.status-icon { font-size: 16px; margin-right: 2px; }
+.actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 15px; padding: 4px; opacity: 0.4; transition: opacity 0.2s; }
+.icon-btn:hover { opacity: 1; }
+
+/* Edit Form */
+.edit-card { background: var(--card-color); padding: 16px; border-radius: 16px; box-shadow: var(--shadow-soft); flex-shrink: 0; }
+.input-group { margin-bottom: 8px; }
+input[type="text"], input[type="url"] { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #FAFAFA; box-sizing: border-box; font-family: "Pretendard"; }
+/* 버튼 그룹 스타일 수정 */
+.btn-group { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; align-items: center; }
+
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); backdrop-filter: blur(4px); display: flex; justify-content: center; align-items: center; z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.2s; }
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-card { background: rgba(255,255,255,0.95); width: 280px; border-radius: 20px; text-align: center; overflow: hidden; transform: scale(0.9); transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.modal-overlay.active .modal-card { transform: scale(1); }
+.modal-content { padding: 24px 20px; }
+.modal-content h3 { margin: 0 0 8px; font-size: 18px; font-weight: 700; }
+.modal-content p { margin: 0; font-size: 14px; color: var(--text-sub); }
+.modal-actions { display: flex; border-top: 1px solid rgba(0,0,0,0.1); }
+.modal-btn { flex: 1; padding: 14px; border: none; background: transparent; font-size: 16px; cursor: pointer; font-family: "Pretendard"; }
+.modal-btn.confirm { color: var(--brand-color); font-weight: 600; border-left: 1px solid rgba(0,0,0,0.1); }

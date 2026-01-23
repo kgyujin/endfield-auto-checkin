@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auto Daily Check-in</title>
+    
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+    <style>
+        :root {
+            --brand-color: #f9a063;
+            --brand-hover: #e08e55;
+            --bg-color: #F5F5F7;
+            --text-main: #1D1D1F;
+            --card-bg: #FFFFFF;
+        }
+
+        body {
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
+            margin: 0;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Hero Section */
+        .hero {
+            background: linear-gradient(135deg, #fff 0%, #f4f4f4 100%);
+            padding: 80px 20px 60px;
+            text-align: center;
+            border-bottom: 1px solid #e5e5e5;
+        }
+
+        .hero h1 { font-size: 2.8rem; margin-bottom: 12px; font-weight: 800; letter-spacing: -1px; }
+        .hero p { font-size: 1.1rem; color: #666; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
+
+        .last-update {
+            font-size: 0.85rem;
+            color: #888;
+            margin-bottom: 30px;
+            display: inline-block;
+            background: rgba(0,0,0,0.05);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .btn-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            border: none;
+        }
+
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        .btn:active { transform: translateY(0); }
+
+        .btn-primary { background-color: var(--brand-color); color: white; }
+        .btn-outline { background-color: white; border: 1px solid #d1d1d6; color: #1c1c1e; }
+
+        /* Content Section */
+        .container {
+            max-width: 800px;
+            width: 100%;
+            margin: 40px auto;
+            padding: 40px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            box-sizing: border-box;
+            flex: 1; /* Footer를 바닥으로 밀기 위해 */
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 20px;
+            font-size: 0.8rem;
+            color: #ccc; /* 희미하게 */
+        }
+        footer a { color: inherit; text-decoration: none; transition: color 0.2s; }
+        footer a:hover { color: #999; text-decoration: underline; }
+
+        /* Markdown Styles */
+        .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid #eaecef; padding-bottom: .3em; margin-top: 24px; }
+        .markdown-body code { background-color: #f6f8fa; padding: 0.2em 0.4em; border-radius: 6px; font-family: monospace; font-size: 0.9em; }
+        .markdown-body pre { background-color: #161b22; padding: 16px; border-radius: 8px; overflow: auto; margin: 16px 0; }
+        .markdown-body pre code { background-color: transparent; color: #f0f6fc; padding: 0; }
+        .markdown-body blockquote { border-left: 4px solid #dfe2e5; color: #6a737d; padding-left: 1em; margin-left: 0; }
+        .markdown-body table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+        .markdown-body th, .markdown-body td { border: 1px solid #dfe2e5; padding: 8px 13px; }
+        .markdown-body tr:nth-child(2n) { background-color: #f6f8fa; }
+        .markdown-body img { max-width: 100%; border-radius: 8px; }
+        .markdown-body a { color: var(--brand-color); text-decoration: none; }
+        .markdown-body a:hover { text-decoration: underline; }
+
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 12px 24px;
+            border-radius: 50px; font-size: 14px; opacity: 0; pointer-events: none;
+            transition: opacity 0.3s; z-index: 1000;
+        }
+        #toast.show { opacity: 1; }
+
+        /* Loader */
+        .loader { text-align: center; padding: 50px; color: #888; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+    <div class="hero">
+        <h1>Auto Daily Check-in</h1>
+        <p>각종 게임 및 웹사이트의 자동 출석 체크를 돕는 간편한 크롬 확장 프로그램입니다.</p>
+        
+        <div id="lastUpdate" class="last-update">업데이트 확인 중...</div>
+
+        <div class="btn-group">
+            <button class="btn btn-primary" onclick="copyCloneCmd()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                Clone 명령어 복사
+            </button>
+
+            <a id="zipLink" href="#" class="btn btn-outline">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                ZIP 다운로드
+            </a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div id="content" class="markdown-body">
+            <div class="loader">README 파일을 불러오고 있습니다...</div>
+        </div>
+    </div>
+
+    <footer>
+        <a href="https://github.com/kgyujin/auto-daily-checkin" target="_blank">
+            https://github.com/kgyujin/auto-daily-checkin
+        </a>
+    </footer>
+
+    <div id="toast">명령어가 복사되었습니다!</div>
+
+    <script>
+        // ==========================================
+        // 설정 영역
+        // ==========================================
+        const USER_NAME = "kgyujin"; 
+        const REPO_NAME = "auto-daily-checkin"; 
+        const BRANCH = "main"; // 기본 브랜치 (main 또는 master)
+        // ==========================================
+
+        const GITHUB_REPO_URL = `https://github.com/${USER_NAME}/${REPO_NAME}`;
+        const RAW_README_URL = `https://raw.githubusercontent.com/${USER_NAME}/${REPO_NAME}/${BRANCH}/README.md`;
+        const API_COMMIT_URL = `https://api.github.com/repos/${USER_NAME}/${REPO_NAME}/commits/${BRANCH}`;
+
+        // 1. 초기화: ZIP 링크 설정
+        document.getElementById('zipLink').href = `${GITHUB_REPO_URL}/archive/refs/heads/${BRANCH}.zip`;
+
+        // 2. 마지막 커밋 날짜 가져오기 (KST 변환)
+        fetch(API_COMMIT_URL)
+            .then(res => res.json())
+            .then(data => {
+                const dateStr = data.commit.committer.date;
+                const dateObj = new Date(dateStr);
+                
+                // 한국 시간 포맷팅
+                const kstDate = new Intl.DateTimeFormat('ko-KR', {
+                    timeZone: 'Asia/Seoul',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }).format(dateObj);
+
+                document.getElementById('lastUpdate').innerText = `마지막 업데이트: ${kstDate} (KST)`;
+            })
+            .catch(() => {
+                document.getElementById('lastUpdate').style.display = 'none';
+            });
+
+        // 3. README.md 렌더링
+        fetch(RAW_README_URL)
+            .then(response => {
+                if (!response.ok) throw new Error("README 로드 실패");
+                return response.text();
+            })
+            .then(text => {
+                // 이미지 경로 보정 (상대 경로 -> 절대 경로)
+                // 예: ./images/icon.png -> https://raw.github.../images/icon.png
+                const fixedText = text.replace(
+                    /!\[(.*?)\]\(\.\/(.*?)\)/g, 
+                    `![$1](https://raw.githubusercontent.com/${USER_NAME}/${REPO_NAME}/${BRANCH}/$2)`
+                );
+                
+                document.getElementById('content').innerHTML = marked.parse(fixedText);
+                hljs.highlightAll();
+            })
+            .catch(err => {
+                document.getElementById('content').innerHTML = `
+                    <div style="text-align:center; padding: 40px; color:#ff4d4f;">
+                        <h3>문서를 불러오지 못했습니다.</h3>
+                        <p>${err.message}</p>
+                        <p>리포지토리가 Public 상태인지 확인해주세요.</p>
+                    </div>`;
+            });
+
+        // 4. 유틸리티 함수
+        function copyCloneCmd() {
+            const cmd = `git clone ${GITHUB_REPO_URL}.git`;
+            navigator.clipboard.writeText(cmd).then(() => {
+                showToast(`✅ 클립보드에 복사됨: ${cmd}`);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.innerText = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 2000);
+        }
+    </script>
+</body>
+</html>

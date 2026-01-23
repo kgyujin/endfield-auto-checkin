@@ -1,45 +1,63 @@
 // content.js
 const CONSTANTS = {
-    DELAY_INIT: 3000,
     CHECK_INTERVAL: 1000,
-    MAX_ATTEMPTS: 20
+    MAX_ATTEMPTS: 15
 };
 
-setTimeout(() => {
-    attemptDomCheckIn();
-}, CONSTANTS.DELAY_INIT);
+// [핵심] 자동으로 실행하지 않고 메시지를 기다림
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.action === "EXECUTE_DOM_CHECK") {
+        console.log(`[AutoCheck] ${message.siteName} 자동 점검 시작`);
+        attemptDomCheckIn();
+    }
+});
 
 function attemptDomCheckIn() {
     const url = window.location.href;
-    
-    // 호요랩 API 처리는 background에서 하므로 여기선 DOM 처리만
-    // (background에서 DOM 모드로 넘겨준 경우에만 작동)
-    // 현재는 모든 사이트 대상으로 모니터링하되, 호요랩은 API우선이라 충돌 방지 필요
-    // 하지만 background.js가 탭을 열 때만 이 코드가 의미가 있으므로 그대로 둠
-
     let attempts = 0;
+
+    // 즉시 확인: 이미 완료된 상태인지 먼저 체크
+    if (checkIfAlreadyDone(url)) {
+        sendMessage("already_done", url);
+        return;
+    }
+
     const interval = setInterval(() => {
         attempts++;
         let result = null;
 
-        // 1. SKPORT (엔드필드)
+        // 1. SKPORT (엔드필드) 로직
         if (url.includes("skport.com")) {
             const items = document.querySelectorAll('div[class*="sc-chKHoF"]');
+            
             if (items.length > 0) {
                 let target = null;
-                let allDone = true;
+                // 미수령 아이템 찾기
                 for (const item of items) {
                     if (!item.querySelector('#completed-overlay')) {
                         target = item;
-                        allDone = false;
                         break;
                     }
                 }
-                if (target) { target.click(); result = "success"; }
-                else if (allDone) { result = "already_done"; }
+
+                if (target) {
+                    console.log("[AutoCheck] 아이템 클릭 시도");
+                    target.click();
+                    
+                    // 클릭 후 잠시 대기했다가 성공 여부 확인
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        // 클릭 후 오버레이가 생겼는지 확인하거나 그냥 성공 처리
+                        sendMessage("success", url); 
+                    }, 1500);
+                    return; 
+                } else {
+                    // 타겟이 없는데 아이템은 있다? -> 다 한 거임
+                    result = "already_done";
+                }
             }
         }
-        // 2. HoYoLAB (API 실패 시 백업 DOM 로직)
+        // 2. 호요랩 (fallback)
         else if (url.includes("hoyolab.com")) {
             if (document.body.innerText.match(/Checked in|출석 완료|Claimed/i)) {
                 result = "already_done";
@@ -55,18 +73,41 @@ function attemptDomCheckIn() {
             }
         }
 
+        // 결과 전송
         if (result) {
             clearInterval(interval);
             sendMessage(result, url);
         } else if (attempts >= CONSTANTS.MAX_ATTEMPTS) {
             clearInterval(interval);
-            sendMessage("fail", url);
+            // 타임아웃이지만, 혹시 이미 되어있는지 마지막 확인
+            if (checkIfAlreadyDone(url)) {
+                sendMessage("already_done", url);
+            } else {
+                sendMessage("fail", url);
+            }
         }
+
     }, CONSTANTS.CHECK_INTERVAL);
 }
 
+// 이미 완료되었는지 확인하는 헬퍼 함수
+function checkIfAlreadyDone(url) {
+    if (url.includes("skport.com")) {
+        const items = document.querySelectorAll('div[class*="sc-chKHoF"]');
+        if (items.length > 0) {
+            // 모든 아이템에 오버레이가 있으면 true
+            const allOverlay = Array.from(items).every(item => item.querySelector('#completed-overlay'));
+            return allOverlay;
+        }
+    }
+    return false;
+}
+
 function sendMessage(status, url) {
-    setTimeout(() => {
-        chrome.runtime.sendMessage({ action: "checkInResult", status, url });
-    }, 1000);
+    // 메시지 전송
+    chrome.runtime.sendMessage({
+        action: "checkInResult",
+        status: status,
+        url: url
+    });
 }

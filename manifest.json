@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Auto Daily Check-in",
-  "version": "8.0",
+  "version": "8.1",
   "description": "Automate daily check-ins for multiple games and platforms.",
   "permissions": [
     "tabs",
@@ -28,5 +28,12 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

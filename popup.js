@@ -10,10 +10,9 @@ const StorageService = {
     saveSites(sites) {
         return new Promise((resolve) => storage.set({ sites }, resolve));
     },
-    // 전체 자동 실행 토글 관리
     getGlobalToggle() {
         return new Promise((resolve) => {
-            storage.get(['isGlobalActive'], (result) => resolve(result.isGlobalActive !== false)); // Default true
+            storage.get(['isGlobalActive'], (result) => resolve(result.isGlobalActive !== false));
         });
     },
     setGlobalToggle(isActive) {
@@ -27,7 +26,6 @@ const App = {
         this.bindEvents();
         this.renderList();
         
-        // 전체 토글 초기화
         const isGlobalActive = await StorageService.getGlobalToggle();
         document.getElementById('globalToggle').checked = isGlobalActive;
     },
@@ -37,16 +35,13 @@ const App = {
         document.getElementById('clearBtn').addEventListener('click', () => this.clearForm());
         document.getElementById('addCurrentSiteBtn').addEventListener('click', () => this.handleAddCurrent());
         
-        // 전체 실행 토글
         document.getElementById('globalToggle').addEventListener('change', (e) => {
             StorageService.setGlobalToggle(e.target.checked);
         });
 
-        // 즉시 실행 (토글 무시하고 강제 실행)
         document.getElementById('runNowBtn').addEventListener('click', () => {
-            Modal.show("즉시 실행", "모든 사이트(활성화된)의 출석을 점검합니다.<br>진행하시겠습니까?", () => {
+            Modal.show("즉시 실행", "모든 사이트의 출석을 점검합니다.<br>진행하시겠습니까?", () => {
                 chrome.runtime.sendMessage({ action: "manualRun" });
-                // 팝업 닫지 않음 (결과 확인용, 원하면 window.close() 추가)
             });
         });
     },
@@ -54,7 +49,7 @@ const App = {
     async renderList() {
         const sites = await StorageService.getSites();
         const listDiv = document.getElementById('siteList');
-        const today = new Date().toISOString().split('T')[0]; // UTC to YYYY-MM-DD (simplified) -> 실제론 background와 동일한 로직 사용 권장
+        const today = this.getServerTodayString(); // UTC+8 기준 오늘
 
         listDiv.innerHTML = '';
 
@@ -64,14 +59,12 @@ const App = {
         }
 
         sites.forEach(site => {
-            const isDone = site.lastCheckIn === this.getTodayString();
-            // 기본값 true 호환성
+            const isDone = site.lastCheckIn === today;
             const isEnabled = site.isEnabled !== false; 
             
             const div = document.createElement('div');
             div.className = 'site-item';
             
-            // 사이트별 토글 스위치 HTML
             const toggleHtml = `
                 <label class="switch small">
                     <input type="checkbox" class="site-toggle" data-id="${site.id}" ${isEnabled ? 'checked' : ''}>
@@ -80,7 +73,7 @@ const App = {
             `;
 
             div.innerHTML = `
-                <div class="status-icon" style="opacity: ${isDone ? '1' : '0.3'}" title="${isDone ? '오늘 완료' : '대기'}">
+                <div class="status-icon" style="opacity: ${isDone ? '1' : '0.3'}" title="${isDone ? '오늘 완료 (UTC+8)' : '대기'}">
                     ${isDone ? '✅' : '⚪️'}
                 </div>
                 <div class="site-info">
@@ -94,14 +87,12 @@ const App = {
                 </div>
             `;
 
-            // 이벤트 바인딩
             this.bindItemEvents(div, site);
             listDiv.appendChild(div);
         });
     },
 
     bindItemEvents(div, site) {
-        // 복사
         const urlSpan = div.querySelector('.site-url');
         urlSpan.addEventListener('click', () => {
             navigator.clipboard.writeText(site.url);
@@ -111,7 +102,6 @@ const App = {
             setTimeout(() => { urlSpan.innerText = original; urlSpan.style.color = ""; }, 1500);
         });
 
-        // 수정
         div.querySelector('.edit-btn').addEventListener('click', () => {
             document.getElementById('editId').value = site.id;
             document.getElementById('siteName').value = site.name;
@@ -120,7 +110,6 @@ const App = {
             document.querySelector('.edit-card').scrollIntoView({ behavior: 'smooth' });
         });
 
-        // 삭제
         div.querySelector('.del-btn').addEventListener('click', () => {
             Modal.show("삭제 확인", `'${site.name}'을(를) 삭제하시겠습니까?`, async () => {
                 const sites = await StorageService.getSites();
@@ -130,7 +119,6 @@ const App = {
             });
         });
 
-        // 사이트별 토글
         div.querySelector('.site-toggle').addEventListener('change', async (e) => {
             const isChecked = e.target.checked;
             const sites = await StorageService.getSites();
@@ -166,7 +154,7 @@ const App = {
                 name: name,
                 url: url,
                 lastCheckIn: "",
-                isEnabled: true // 신규 추가는 기본 켜짐
+                isEnabled: true
             });
         }
 
@@ -193,13 +181,14 @@ const App = {
         document.getElementById('saveBtn').innerText = "저장하기";
     },
 
-    getTodayString() {
-        const offset = new Date().getTimezoneOffset() * 60000;
-        return new Date(Date.now() - offset).toISOString().split('T')[0];
+    // [수정됨] UTC+8 기준 날짜 (Background와 동기화)
+    getServerTodayString() {
+        const now = new Date();
+        const utc8Time = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+        return utc8Time.toISOString().split('T')[0];
     }
 };
 
-// 모달
 const Modal = {
     overlay: document.getElementById('customModal'),
     show(title, message, onConfirm, showCancel = true) {

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "명일방주: 엔드필드 자동 출석체크(Arknights: Endfield Auto Check-in)",
-  "version": "13.4",
+  "version": "14.0",
   "description": "Automated daily check-in for Arknights: Endfield",
   "permissions": [
     "alarms",

@@ -7,9 +7,15 @@ chrome.storage.local.get(['accountInfo'], (data) => {
 // [핵심 추가] popup.js의 요청을 듣는 리스너 (이게 없어서 실패했던 것임)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getLocalStorage") {
-        const data = scanForAccountData();
-        // 비동기 응답을 위해 true 리턴이 필요할 수 있으나, 동기 처리로 충분함
-        sendResponse(data);
+        try {
+            const data = scanForAccountData();
+            sendResponse(data);
+        } catch (e) {
+            console.error('Error scanning account data:', e);
+            sendResponse({ cred: null, role: null });
+        }
+        // Return true to indicate we will send a response asynchronously
+        return true;
     }
 });
 

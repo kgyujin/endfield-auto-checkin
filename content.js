@@ -1,88 +1,76 @@
-// content.js
-const CONSTANTS = {
-    CHECK_INTERVAL: 1000,
-    MAX_ATTEMPTS: 10
-};
-
-// 백그라운드 명령 대기
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "EXECUTE_DOM_CHECK") {
-        console.log(`[AutoCheck] ${message.siteName} 자동 점검 시작`);
-        attemptSkportCheckIn();
-    }
+chrome.storage.local.get(['accountInfo'], (data) => {
+    if (data.accountInfo && data.accountInfo.cred) return;
+    showSyncPrompt();
 });
 
-function attemptSkportCheckIn() {
-    const url = window.location.href;
-    let attempts = 0;
+function getAccountData() {
+    let cred = null;
+    let role = null;
+
+    // 1. Storage 스캔
+    const keys = ['cred', 'CRED', 'sk_cred'];
+    const rKeys = ['sk-game-role', 'SK-GAME-ROLE', 'sk_game_role'];
     
-    // 타겟 아이템(클릭 시도한 아이템)을 추적
-    let lastClickedItem = null;
+    for(let k of keys) {
+        cred = localStorage.getItem(k) || sessionStorage.getItem(k);
+        if(cred) break;
+    }
+    for(let k of rKeys) {
+        role = localStorage.getItem(k) || sessionStorage.getItem(k);
+        if(role) break;
+    }
 
-    const interval = setInterval(() => {
-        attempts++;
-        
-        // 1. 아이템 리스트 찾기
-        const items = document.querySelectorAll('div[class*="sc-chKHoF"]');
-        
-        if (items.length > 0) {
-            let target = null;
-            let allHaveOverlay = true;
-
-            // 2. 미수령 아이템(오버레이가 없는 것) 탐색
-            for (const item of items) {
-                if (!item.querySelector('#completed-overlay')) {
-                    target = item;
-                    allHaveOverlay = false;
-                    break; // 첫 번째 미수령 아이템 발견 시 중단
-                }
-            }
-
-            // [Case A] 모든 아이템에 오버레이가 있음 -> 이미 전체 완료
-            if (allHaveOverlay) {
-                clearInterval(interval);
-                sendMessage("already_done", url);
-                return;
-            }
-
-            // [Case B] 미수령 아이템 발견 -> 클릭 시도
-            if (target) {
-                // 이전 턴에 클릭했는데 여전히 오버레이가 없다면? -> 클릭 불가능한 미래 날짜임
-                if (lastClickedItem === target) {
-                    console.log("[AutoCheck] 클릭해도 반응 없음 -> 미래 날짜로 판단 -> 오늘 출석 완료");
-                    clearInterval(interval);
-                    sendMessage("already_done", url); // 성공으로 처리
-                    return;
-                }
-
-                console.log("[AutoCheck] 아이템 클릭 시도");
-                target.click();
-                lastClickedItem = target;
-                
-                // 클릭 후 잠시 대기 (다음 인터벌에서 오버레이 생성 여부 확인)
-                return; 
-            }
+    // 2. Cookie 스캔
+    if(!cred || !role) {
+        const cookies = document.cookie.split(';');
+        for(let c of cookies) {
+            const [k, v] = c.trim().split('=');
+            if(!cred && (k==='cred' || k==='sk_cred')) cred = v;
+            if(!role && (k==='sk-game-role' || k==='sk_game_role')) role = decodeURIComponent(v);
         }
+    }
 
-        // [Case C] 타임아웃
-        if (attempts >= CONSTANTS.MAX_ATTEMPTS) {
-            clearInterval(interval);
-            // 타임아웃이지만 아이템을 찾긴 했다면, 이미 완료된 것으로 간주 (안전장치)
-            if (document.querySelectorAll('div[class*="sc-chKHoF"]').length > 0) {
-                console.log("[AutoCheck] 타임아웃: 아이템은 존재함 -> 완료 처리");
-                sendMessage("already_done", url);
-            } else {
-                sendMessage("fail", url);
-            }
-        }
-
-    }, CONSTANTS.CHECK_INTERVAL);
+    return { cred, role };
 }
 
-function sendMessage(status, url) {
-    chrome.runtime.sendMessage({
-        action: "checkInResult",
-        status: status,
-        url: url
+function showSyncPrompt() {
+    if (document.getElementById('endfield-sync-prompt')) return;
+
+    const div = document.createElement('div');
+    div.id = "endfield-sync-prompt";
+    div.style.cssText = `
+        position: fixed; bottom: 20px; left: 20px; z-index: 10000;
+        background: rgba(26, 26, 26, 0.95); border: 1px solid rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px); padding: 16px; border-radius: 12px;
+        color: white; font-family: sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        display: flex; flex-direction: column; gap: 10px; width: 260px; font-size: 13px;
+    `;
+
+    div.innerHTML = `
+        <div style="font-weight:700; color:#D4D94A;">⚡ 자동 출석 계정 연동</div>
+        <div style="color:#ccc; line-height:1.4;">로그인된 계정으로<br>자동 출석을 설정하시겠습니까?</div>
+        <div style="display:flex; gap:8px;">
+            <button id="btn-sync-yes" style="flex:1; background:#D4D94A; border:none; padding:8px 0; border-radius:6px; font-weight:700; cursor:pointer; color:#1A1A1A;">네</button>
+            <button id="btn-sync-no" style="flex:1; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.1); padding:8px 0; border-radius:6px; color:#fff; cursor:pointer;">아니오</button>
+        </div>
+    `;
+
+    document.body.appendChild(div);
+
+    document.getElementById('btn-sync-yes').addEventListener('click', () => {
+        const data = getAccountData();
+        // cred가 없어도 일단 보냄 (백그라운드가 쿠키를 뒤질 기회를 줌)
+        chrome.runtime.sendMessage({ action: "syncAccount", data: data }, (res) => {
+            if (res && res.code === "SUCCESS") {
+                alert("연동 완료!");
+                div.remove();
+            } else {
+                alert("연동 실패: " + (res ? res.msg : "응답 없음"));
+            }
+        });
+    });
+
+    document.getElementById('btn-sync-no').addEventListener('click', () => {
+        div.remove();
     });
 }

@@ -2,72 +2,58 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Auto Check-in</title>
-    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <title>Endfield Check-in</title>
     <link rel="stylesheet" href="popup.css">
 </head>
 <body>
     <div class="app-container">
         <header>
-            <div class="header-top">
-                <div class="title-area">
-                    <h2>출석 매니저</h2>
-                    <span class="badge">PRO</span>
-                </div>
-                <div class="toggle-wrapper">
-                    <span class="toggle-label">자동 실행</span>
-                    <label class="switch">
-                        <input type="checkbox" id="globalToggle">
-                        <span class="slider round"></span>
-                    </label>
-                </div>
+            <div class="title-area">
+                <h2 class="glow-text">ENDFIELD<br>CHECK-IN</h2>
             </div>
-            <button id="runNowBtn" class="btn-primary small full-width-btn">즉시 실행 (강제)</button>
-        </header>
-
-        <div class="quick-actions">
-            <button id="addCurrentSiteBtn" class="btn-secondary">
-                <span>+</span> 현재 보고 있는 사이트 추가
-            </button>
-        </div>
-
-        <div class="section-title">관리 중인 사이트</div>
-        <div id="siteList" class="site-list">
-            </div>
-
-        <div class="edit-card">
-            <div class="input-group">
-                <input type="hidden" id="editId">
-                <input type="text" id="siteName" placeholder="사이트 이름 (예: 엔드필드)">
-            </div>
-            <div class="input-group">
-                <input type="url" id="siteUrl" placeholder="출석 URL (https://skport.com/...)">
-            </div>
-            <div class="btn-group">
-                <button id="clearBtn" class="btn-reset" title="입력 초기화">
+            <div class="header-controls">
+                <button id="btnSettings" class="icon-btn" title="설정 및 기록">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
-                        <path d="M3 3v5h5"/>
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
                     </svg>
                 </button>
-                <button id="saveBtn" class="btn-primary">저장하기</button>
+                
+                <label class="switch">
+                    <input type="checkbox" id="globalToggle">
+                    <span class="slider round"></span>
+                </label>
             </div>
+        </header>
+
+        <div id="mainView">
+            <div class="status-card">
+                <div class="status-header">TODAY'S STATUS</div>
+                <div id="statusDisplay" class="status-value">-</div>
+                <div id="lastRunDisplay" class="status-time">마지막 실행: -</div>
+            </div>
+            
+            <button id="runNowBtn" class="btn-primary full-width">
+                CHECK NOW
+            </button>
+            <a href="https://game.skport.com/endfield/sign-in" target="_blank" class="site-link">출석 사이트 바로가기 ↗</a>
+        </div>
+
+        <div id="settingsView" style="display: none;">
+            <div class="section-title">계정 연동 상태</div>
+            <div class="sync-box">
+                <div id="userInfo" class="sync-info">정보 없음</div>
+                <button id="btnSync" class="btn-primary small">계정 연동 갱신</button>
+            </div>
+
+            <div class="section-title">최근 3일 기록</div>
+            <div id="logList" class="log-list">
+                <div style="text-align:center; color:#666; padding:10px;">기록 없음</div>
+            </div>
+
+            <button id="btnBack" class="btn-text">← 돌아가기</button>
         </div>
     </div>
-
-    <div id="customModal" class="modal-overlay">
-        <div class="modal-card">
-            <div class="modal-content">
-                <h3 id="modalTitle">알림</h3>
-                <p id="modalMessage">내용</p>
-            </div>
-            <div class="modal-actions">
-                <button id="modalCancel" class="modal-btn cancel">취소</button>
-                <button id="modalConfirm" class="modal-btn confirm">확인</button>
-            </div>
-        </div>
-    </div>
-
     <script src="popup.js"></script>
 </body>
 </html>

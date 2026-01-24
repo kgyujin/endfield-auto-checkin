@@ -1,265 +1,287 @@
-const storage = chrome.storage.sync;
+/**
+ * Endfield Auto Check-in v13.4
+ */
+
+const API_ENDPOINT = "https://zonai.skport.com/web/v1/game/endfield/attendance";
+const REFERER_URL = "https://game.skport.com/";
+const COOKIE_DOMAIN = "skport.com";
 const ALARM_NAME = "dailyCheckIn";
 
-const HOYO_API_MAP = {
-    'genshin': 'https://sg-hk4e-api.hoyolab.com/event/sol/sign',
-    'starrail': 'https://sg-public-api.hoyolab.com/event/luna/os/sign',
-    'honkai3rd': 'https://sg-public-api.hoyolab.com/event/mani/sign',
-    'zenless': 'https://sg-act-nap-api.hoyolab.com/event/luna/zzz/os/sign',
-    'tears': 'https://sg-public-api.hoyolab.com/event/luna/os/sign'
-};
-
-// --- [초기화 및 스케줄링] ---
-chrome.runtime.onStartup.addListener(() => startAutoCheck(false));
-chrome.runtime.onInstalled.addListener(() => {
-    startAutoCheck(false);
-    // 설치 직후 알람 등록
-    chrome.alarms.create(ALARM_NAME, { periodInMinutes: 15 });
-});
-
-// 15분마다 실행 (하지만 완료되었으면 조용히 종료됨)
-chrome.alarms.onAlarm.addListener((alarm) => { 
-    if (alarm.name === ALARM_NAME) startAutoCheck(false); 
-});
-
-// 메시지 핸들러
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    if (message.action === "manualRun") {
-        startAutoCheck(true); // 수동 실행 (강제)
-    } 
-    else if (message.action === "checkInResult") {
-        // DOM 결과 처리 (windowId도 함께 전달받거나 sender로 유추)
-        handleDomResult(message.status, message.url, sender.tab?.windowId);
-    } 
-    else if (message.action === "proxyHoyoAPI") {
-        handleHoyoAPI(message.data).then(sendResponse);
-        return true; 
+class AccountStore {
+    async get(key) {
+        const data = await chrome.storage.local.get([key]);
+        return data[key];
     }
-});
-
-// UTC+8 기준 오늘 날짜 (엔드필드 서버 기준)
-function getServerTodayString() {
-    const now = new Date();
-    const utc8Time = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
-    return utc8Time.toISOString().split('T')[0];
-}
-
-// --- [메인 실행 로직] ---
-async function startAutoCheck(force = false) {
-    // 1. 전체 토글 확인
-    if (!force) {
-        const config = await storage.get(['isGlobalActive']);
-        if (config.isGlobalActive === false) {
-            updateBadge("OFF", "#999");
-            return;
-        }
+    async set(key, value) {
+        return chrome.storage.local.set({ [key]: value });
     }
-
-    // 알람이 삭제되었을 경우를 대비해 재등록
-    chrome.alarms.create(ALARM_NAME, { periodInMinutes: 15 });
-
-    processAllSites(force);
-}
-
-async function processAllSites(force) {
-    const data = await storage.get(['sites']);
-    const sites = data.sites || [];
-    const serverToday = getServerTodayString();
-
-    // 해야 할 사이트 필터링 (완료 안 됨 + 토글 켜짐)
-    const pendingSites = sites.filter(s => {
-        const dateCheck = force ? true : s.lastCheckIn !== serverToday;
-        const toggleCheck = s.isEnabled !== false;
-        return dateCheck && toggleCheck;
-    });
-
-    // 모든 출석 완료 시
-    if (pendingSites.length === 0) {
-        updateBadge("OK", "#34C759"); // 초록색 OK 배지
-        if (force) notify("완료", "모든 사이트가 이미 출석 완료 상태입니다.");
-        return;
-    }
-
-    // 남은 개수 배지 표시
-    updateBadge(pendingSites.length.toString(), "#FF9500");
-
-    if (force) notify("점검 시작", `${pendingSites.length}개 사이트의 출석을 진행합니다.`);
-
-    for (const site of pendingSites) {
-        // 호요랩 (API)
-        if (site.url.includes("hoyolab.com")) {
-            await processHoyoLab(site, serverToday);
-        } 
-        // SKPORT 등 (DOM) - 백그라운드 창 사용
-        else {
-            await processDomSite(site);
-        }
-        // 과부하 방지 딜레이
-        await new Promise(r => setTimeout(r, 2000));
-    }
-}
-
-// --- [Type 1] 호요랩 API 처리 ---
-async function processHoyoLab(site, today) {
-    let gameKey = null;
-    if (site.url.includes("genshin")) gameKey = 'genshin';
-    else if (site.url.includes("starrail") || site.url.includes("hsr")) gameKey = 'starrail';
-    else if (site.url.includes("honkai3rd")) gameKey = 'honkai3rd';
-    else if (site.url.includes("zenless") || site.url.includes("zzz")) gameKey = 'zenless';
-    else if (site.url.includes("tears")) gameKey = 'tears';
-
-    const urlObj = new URL(site.url);
-    const actId = urlObj.searchParams.get('act_id');
-
-    if (!gameKey || !actId) {
-        // 정보 부족 시 DOM 모드로 전환
-        await processDomSite(site);
-        return;
-    }
-
-    const cookies = await chrome.cookies.getAll({ domain: "hoyolab.com" });
-    const cookieString = cookies.map(c => `${c.name}=${c.value}`).join('; ');
-
-    try {
-        const apiUrl = `${HOYO_API_MAP[gameKey]}?act_id=${actId}&lang=ko-kr`;
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json;charset=UTF-8',
-                'Cookie': cookieString
-            },
-            body: JSON.stringify({ lang: 'ko-kr', act_id: actId })
-        });
-        const result = await response.json();
-
-        // 0: 성공, -5003: 이미 함
-        if (result.retcode === 0) {
-            updateSiteStatus(site.id, today);
-            notify("출석 성공 ✅", `${site.name} 출석을 완료했습니다.`);
-        } else if (result.retcode === -5003) {
-            updateSiteStatus(site.id, today);
-            // 이미 된 건은 알림 생략 (조용히 처리)
-        } else {
-            notify("출석 실패 ❌", `${site.name}: ${result.message}`);
-        }
-    } catch (e) {
-        console.error(e);
-        notify("오류", `${site.name} 통신 중 오류가 발생했습니다.`);
-    }
-}
-
-// --- [Type 2] DOM 사이트 처리 (Invisible Window) ---
-function processDomSite(site) {
-    return new Promise((resolve) => {
-        // [핵심] 탭 대신 '최소화된 팝업 창'을 생성
-        chrome.windows.create({ 
-            url: site.url, 
-            type: 'popup', 
-            state: 'minimized', // 사용자 눈에 거의 안 띔
-            focused: false 
-        }, (window) => {
-            if (!window || !window.tabs || window.tabs.length === 0) {
-                resolve();
-                return;
-            }
-            
-            const tabId = window.tabs[0].id;
-
-            // 5초 대기 후 스크립트 실행
-            setTimeout(() => {
-                chrome.tabs.sendMessage(tabId, { 
-                    action: "EXECUTE_DOM_CHECK",
-                    siteName: site.name 
-                }).catch(() => {}); // 오류 무시 (이미 닫혔을 수 있음)
-
-                // 25초 안전장치 (타임아웃 시 창 닫기)
-                setTimeout(() => {
-                    chrome.windows.get(window.id, (win) => {
-                        if (chrome.runtime.lastError) return;
-                        if (win) chrome.windows.remove(window.id);
-                        resolve();
-                    });
-                }, 25000);
-
-            }, 5000);
-        });
-    });
-}
-
-// DOM 결과 처리
-function handleDomResult(status, url, windowId) {
-    const serverToday = getServerTodayString();
     
-    storage.get(['sites'], (result) => {
-        const sites = result.sites || [];
-        const target = sites.find(s => url.includes(s.url.split('?')[0]));
+    async addLog(status, message) {
+        let logs = (await this.get('checkInLogs')) || [];
+        // 날짜: 1. 24. 12:30
+        const now = new Date().toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' });
         
-        if (target) {
-            if (status === "success") {
-                updateSiteStatus(target.id, serverToday);
-                notify("출석 성공 ✅", `${target.name}: 출석 체크 완료!`);
-            } else if (status === "already_done") {
-                updateSiteStatus(target.id, serverToday);
-                // 이미 완료된 경우 알림 없이 조용히 처리
-            } else {
-                notify("출석 실패 ❌", `${target.name}: 요소를 찾지 못했습니다.`);
+        logs.unshift({ date: now, status: status, msg: message });
+        
+        if (logs.length > 3) logs = logs.slice(0, 3);
+        
+        await this.set('checkInLogs', logs);
+    }
+
+    async saveAccount(info) { await this.set('accountInfo', info); }
+    async getAccount() { return await this.get('accountInfo'); }
+    async isAutoRunActive() { return (await this.get('isGlobalActive')) !== false; }
+
+    async saveResult(status, date, time) {
+        await this.set('lastStatus', status);
+        await this.set('lastCheckDate', date);
+        await this.set('lastCheckTime', time);
+        await this.set('isRunning', false); // 실행 종료
+    }
+}
+
+class CheckInService {
+    constructor(store) { this.store = store; }
+
+    getServerTodayString() {
+        const now = new Date();
+        const utc8Time = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+        return utc8Time.toISOString().split('T')[0];
+    }
+
+    async getHeaders(method) {
+        const account = await this.store.getAccount();
+        const timestamp = Math.floor(Date.now() / 1000).toString();
+
+        const headers = {
+            "Accept": "application/json, text/plain, */*",
+            "Accept-Encoding": "gzip, deflate, br, zstd",
+            "Accept-Language": "ko,ko-KR;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Origin": "https://game.skport.com",
+            "Referer": REFERER_URL,
+            "Sec-Ch-Ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Google Chrome\";v=\"144\"",
+            "Sec-Ch-Ua-Mobile": "?0",
+            "Sec-Ch-Ua-Platform": "\"macOS\"",
+            "User-Agent": navigator.userAgent,
+            "Platform": "3",
+            "Vname": "1.0.0",
+            "Sk-Language": "ko",
+            "Timestamp": timestamp
+        };
+
+        if (method === "POST") headers["Content-Type"] = "application/json";
+        
+        // 인증 정보
+        if (account) {
+            if (account.cred) headers["cred"] = account.cred;
+            if (account.role) headers["sk-game-role"] = account.role;
+        }
+
+        return headers;
+    }
+
+    async fetchWithRetry(url, options, retries = 1) {
+        for (let i = 0; i <= retries; i++) {
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 401) throw new Error("401 Unauthorized");
+                if (response.ok) return response;
+                throw new Error(`HTTP ${response.status}`);
+            } catch (err) {
+                if (i === retries) throw err;
+                await new Promise(r => setTimeout(r, 1000)); 
             }
         }
-    });
-
-    // 작업이 끝난 '창(Window)'을 닫음
-    if (windowId) {
-        setTimeout(() => chrome.windows.remove(windowId).catch(() => {}), 1000);
     }
-}
 
-function updateSiteStatus(id, date) {
-    storage.get(['sites'], (result) => {
-        const sites = result.sites || [];
-        const index = sites.findIndex(s => s.id === id);
-        if (index !== -1) {
-            sites[index].lastCheckIn = date;
-            storage.set({ sites }, () => {
-                // 저장 후 남은 개수 재계산하여 배지 업데이트
-                processAllSites(false); 
-            });
+    // 쿠키에서 cred 찾기 (2차 방어선)
+    async findCredFromCookies() {
+        const cookies = await chrome.cookies.getAll({ domain: COOKIE_DOMAIN });
+        if (cookies) {
+            const credCookie = cookies.find(c => c.name === 'cred' || c.name === 'sk_cred');
+            if (credCookie) return credCookie.value;
         }
-    });
-}
+        return null;
+    }
 
-// [개선됨] 알림 함수
-function notify(title, msg) {
-    // 1. 배지 업데이트 (알림 대용)
-    // chrome.action.setBadgeText({ text: "!" });
-    // chrome.action.setBadgeBackgroundColor({ color: "#FF3B30" });
+    // role 정보 API로 조회
+    async fetchGameRole(cred) {
+        try {
+            const headers = await this.getHeaders("GET");
+            headers["cred"] = cred; // 임시 주입
+            
+            const url = `https://zonai.skport.com/api/v1/game/player/binding?gameId=3`; 
+            const response = await this.fetchWithRetry(url, {
+                method: "GET", headers: headers, credentials: "include"
+            });
+            const data = await response.json();
 
-    // 2. 크롬 알림
-    const options = {
-        type: "basic",
-        iconUrl: "icon.png", // manifest에 web_accessible_resources 등록 필요 없으나 파일 존재해야 함
-        title: title,
-        message: msg,
-        priority: 2,
-        silent: false
-    };
+            if (data.code === 0 && data.data?.list?.[0]?.bindingList?.[0]?.roles?.[0]) {
+                const roleData = data.data.list[0].bindingList[0].roles[0];
+                // role format: 3_{roleId}_{serverId}
+                return `3_${roleData.roleId}_${roleData.serverId}`;
+            }
+            return null;
+        } catch (e) {
+            return null;
+        }
+    }
 
-    // iconUrl 오류 방지를 위해 try-catch 혹은 안전한 호출
-    try {
-        chrome.notifications.create(options);
-    } catch (e) {
-        // 아이콘 로드 실패 시 아이콘 없이 전송 시도
-        delete options.iconUrl;
-        chrome.notifications.create(options);
+    async syncAccountData(syncData) {
+        try {
+            let cred = syncData?.cred;
+            let role = syncData?.role;
+
+            // 1. cred 없으면 쿠키 탐색
+            if (!cred) {
+                cred = await this.findCredFromCookies();
+                if (!cred) throw new Error("로그인 정보(cred) 없음. 로그인해주세요.");
+            }
+
+            // 2. role 없으면 API 조회
+            if (!role) {
+                role = await this.fetchGameRole(cred);
+                if (!role) throw new Error("캐릭터 정보(Role) 조회 실패.");
+            }
+
+            // 3. API 테스트
+            const headers = await this.getHeaders("GET");
+            headers["cred"] = cred;
+            headers["sk-game-role"] = role;
+
+            const response = await this.fetchWithRetry(API_ENDPOINT, {
+                method: "GET", headers: headers, credentials: "include"
+            });
+            
+            if (!response.ok) throw new Error("API 테스트 실패");
+
+            const accountInfo = {
+                uid: "Linked",
+                cred: cred,
+                role: role,
+                lastSync: new Date().toLocaleString('ko-KR')
+            };
+            
+            await this.store.saveAccount(accountInfo);
+            return { code: "SUCCESS", data: accountInfo };
+
+        } catch (e) {
+            return { code: "FAIL", msg: e.message };
+        }
+    }
+
+    async executeAttendance() {
+        try {
+            const account = await this.store.getAccount();
+            if (!account || !account.cred || !account.role) return { code: "FAIL", msg: "계정 연동 필요" };
+
+            // 1. GET (상태 확인)
+            const getHeaders = await this.getHeaders("GET");
+            const getRes = await this.fetchWithRetry(API_ENDPOINT, {
+                method: "GET", headers: getHeaders, credentials: "include"
+            });
+            const getData = await getRes.json();
+
+            if (getData.code === 0 && getData.data && getData.data.hasToday) {
+                 return { code: "ALREADY_DONE", msg: "이미 완료됨" };
+            }
+
+            // 2. POST (출석)
+            const postHeaders = await this.getHeaders("POST");
+            const postRes = await this.fetchWithRetry(API_ENDPOINT, {
+                method: "POST", headers: postHeaders, credentials: "include", body: JSON.stringify({})
+            });
+            const postData = await postRes.json();
+
+            if (postData.code === 0 || postData.message === "OK") {
+                return { code: "SUCCESS", msg: "출석 성공" };
+            } else if (postData.code === 10001) {
+                return { code: "ALREADY_DONE", msg: "이미 완료됨" };
+            } else {
+                return { code: "FAIL", msg: postData.message || "오류" };
+            }
+        } catch (e) {
+            return { code: "ERROR", msg: e.message };
+        }
     }
 }
 
-// 배지 텍스트 업데이트 헬퍼
-function updateBadge(text, color) {
-    chrome.action.setBadgeText({ text: text });
-    chrome.action.setBadgeBackgroundColor({ color: color });
+class CheckInController {
+    constructor() {
+        this.store = new AccountStore();
+        this.service = new CheckInService(this.store);
+    }
+    init() {
+        chrome.alarms.create(ALARM_NAME, { periodInMinutes: 30 });
+        chrome.alarms.onAlarm.addListener((alarm) => {
+            if (alarm.name === ALARM_NAME) this.run(false);
+        });
+        chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+            if (msg.action === "manualRun") this.run(true);
+            else if (msg.action === "syncAccount") {
+                this.service.syncAccountData(msg.data).then(res => {
+                    if(res.code === "SUCCESS") this.store.addLog("SYNC", "계정 연동 성공");
+                    else this.store.addLog("ERROR", res.msg);
+                    sendResponse(res);
+                });
+                return true; 
+            }
+        });
+        this.run(false);
+    }
+
+    async run(force) {
+        const isActive = await this.store.isAutoRunActive();
+        if (!force && !isActive) { this.clearBadge(); return; }
+
+        const lastDate = await this.store.get('lastCheckDate');
+        const serverToday = this.service.getServerTodayString();
+        const lastStatus = await this.store.get('lastStatus');
+
+        // [수정] SUCCESS 상태면 스킵 (ALREADY_DONE도 SUCCESS로 저장됨)
+        if (!force && lastDate === serverToday && lastStatus === "SUCCESS") {
+            this.clearBadge(); return;
+        }
+
+        // 실행 중 표시
+        await this.store.set('isRunning', true);
+        
+        const result = await this.service.executeAttendance();
+        this.handleResult(result);
+    }
+
+    async handleResult(result) {
+        const serverToday = this.service.getServerTodayString();
+        const timeString = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+
+        // 상세 로그는 그대로 저장 (SUCCESS / ALREADY_DONE 구분)
+        await this.store.addLog(result.code, result.msg);
+
+        // [핵심] 상태 저장 시에는 "ALREADY_DONE"을 "SUCCESS"로 통합하여 UI 혼동 방지
+        let finalStatus = result.code;
+        if (result.code === "ALREADY_DONE") finalStatus = "SUCCESS";
+
+        if (finalStatus === "SUCCESS") {
+            this.clearBadge();
+            await this.store.saveResult("SUCCESS", serverToday, timeString);
+            
+            if (result.code === "SUCCESS") this.notify("출석 완료", "보상 지급됨");
+        } else {
+            this.setBadgeX();
+            await this.store.saveResult("FAIL", serverToday, timeString);
+            
+            if (result.msg.includes("401") || result.code === "NOT_LOGGED_IN") {
+                 this.notify("인증 만료", "계정 연동을 다시 해주세요.");
+            }
+        }
+    }
+
+    clearBadge() { chrome.action.setBadgeText({ text: "" }); }
+    setBadgeX() { chrome.action.setBadgeText({ text: "X" }); chrome.action.setBadgeBackgroundColor({ color: "#FF3B30" }); }
+    notify(title, msg) {
+        chrome.notifications.create({ type: "basic", iconUrl: "icon.png", title: title, message: msg, priority: 1, silent: true });
+    }
 }
 
-async function handleHoyoAPI(data) {
-    // Content Script에서 요청 시 처리 (현재는 Background에서 직접 하므로 사용 안 함)
-    return { retcode: -1 }; 
-}
+const controller = new CheckInController();
+controller.init();

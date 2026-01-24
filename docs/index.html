@@ -3,239 +3,300 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Auto Daily Check-in</title>
+    <title>Endfield Auto Check-in</title>
     
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 
     <style>
         :root {
-            --brand-color: #f9a063;
-            --brand-hover: #e08e55;
-            --bg-color: #F5F5F7;
-            --text-main: #1D1D1F;
-            --card-bg: #FFFFFF;
+            /* 2026 Futuristic Palette */
+            --bg-main: #1A1A1A;       /* Deep Dark Gray */
+            --bg-card: #222222;
+            --accent-color: #D4D94A;  /* Lime Gold */
+            --accent-glow: rgba(212, 217, 74, 0.4);
+            --text-main: #F0F0F0;
+            --text-sub: #888;
+            --border-glass: rgba(255, 255, 255, 0.1);
         }
 
         body {
-            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-main);
-            line-height: 1.6;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
+            font-family: "Pretendard", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            margin: 0; background-color: var(--bg-main); color: var(--text-main);
+            line-height: 1.7; display: flex; flex-direction: column; min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Hero Background Effect */
+        .bg-glow-hero {
+            position: absolute; top: -10%; left: 50%; transform: translateX(-50%);
+            width: 80%; height: 500px;
+            background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 60%);
+            opacity: 0.15; pointer-events: none; z-index: 0; filter: blur(60px);
         }
 
         /* Hero Section */
         .hero {
-            background: linear-gradient(135deg, #fff 0%, #f4f4f4 100%);
-            padding: 80px 20px 60px;
-            text-align: center;
-            border-bottom: 1px solid #e5e5e5;
+            position: relative; padding: 100px 20px 60px; text-align: center; z-index: 1;
         }
 
-        .hero h1 { font-size: 2.8rem; margin-bottom: 12px; font-weight: 800; letter-spacing: -1px; }
-        .hero p { font-size: 1.1rem; color: #666; margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
-
-        .last-update {
-            font-size: 0.85rem;
-            color: #888;
-            margin-bottom: 30px;
-            display: inline-block;
-            background: rgba(0,0,0,0.05);
-            padding: 4px 12px;
-            border-radius: 20px;
+        .hero h1 {
+            font-size: 3rem; margin-bottom: 10px; font-weight: 800; 
+            letter-spacing: -1px; color: var(--text-main);
+            text-shadow: 0 0 20px rgba(212, 217, 74, 0.2);
         }
+        .hero p { font-size: 1.1rem; color: var(--text-sub); margin-bottom: 30px; max-width: 600px; margin-left: auto; margin-right: auto; }
 
-        .btn-group { display: flex; gap: 15px; justify-content: center; flex-wrap: wrap; }
+        /* Language Switcher */
+        .lang-switch {
+            display: inline-flex; background: rgba(255,255,255,0.05); border-radius: 30px;
+            padding: 4px; margin-bottom: 30px; border: 1px solid var(--border-glass);
+            backdrop-filter: blur(10px);
+        }
+        .lang-btn {
+            background: none; border: none; color: var(--text-sub); padding: 8px 20px;
+            font-size: 0.9rem; cursor: pointer; border-radius: 24px; font-weight: 600; transition: all 0.2s;
+        }
+        .lang-btn.active { background: var(--accent-color); color: var(--bg-main); box-shadow: 0 0 10px var(--accent-glow); }
 
+        /* Action Buttons */
+        .btn-group { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;}
         .btn {
-            padding: 12px 24px;
-            border-radius: 12px;
-            font-size: 1rem;
-            font-weight: 600;
-            text-decoration: none;
-            cursor: pointer;
-            transition: transform 0.2s, box-shadow 0.2s;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            border: none;
+            padding: 12px 24px; border-radius: 12px; font-size: 0.95rem; font-weight: 700;
+            text-decoration: none; cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px; border: none;
         }
+        .btn-primary { background: var(--accent-color); color: var(--bg-main); }
+        .btn-primary:hover { background: #E6EB5C; box-shadow: 0 0 20px var(--accent-glow); transform: translateY(-2px); }
+        
+        .btn-outline {
+            background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass); color: var(--text-main);
+        }
+        .btn-outline:hover { border-color: var(--accent-color); background: rgba(255,255,255,0.08); transform: translateY(-2px); }
 
-        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        .btn:active { transform: translateY(0); }
+        .last-update { font-size: 0.8rem; color: var(--text-sub); opacity: 0.7; margin-top: 10px; }
 
-        .btn-primary { background-color: var(--brand-color); color: white; }
-        .btn-outline { background-color: white; border: 1px solid #d1d1d6; color: #1c1c1e; }
-
-        /* Content Section */
+        /* Content Container (Glassmorphism) */
         .container {
-            max-width: 800px;
-            width: 100%;
-            margin: 40px auto;
-            padding: 40px;
-            background: var(--card-bg);
-            border-radius: 20px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            box-sizing: border-box;
-            flex: 1; /* Footer를 바닥으로 밀기 위해 */
+            max-width: 840px; width: 90%; margin: 20px auto 60px; padding: 60px;
+            background: var(--bg-card); border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3); box-sizing: border-box;
+            border: 1px solid var(--border-glass); 
+            z-index: 1; min-height: 300px;
         }
+
+        /* Markdown Styles Overrides */
+        .markdown-body { color: var(--text-main); font-size: 1rem; }
+        
+        /* Headers */
+        .markdown-body h1, .markdown-body h2 { 
+            border-bottom: 1px solid var(--border-glass); padding-bottom: .4em; 
+            margin-top: 40px; margin-bottom: 20px; color: #fff; letter-spacing: -0.5px; 
+        }
+        .markdown-body h1 { font-size: 2rem; } 
+        .markdown-body h2 { font-size: 1.6rem; color: var(--accent-color); }
+        .markdown-body h3 { margin-top: 30px; font-size: 1.3rem; color: #fff; }
+
+        /* Code Blocks */
+        .markdown-body code { 
+            background-color: rgba(255,255,255,0.1); padding: 0.2em 0.4em; 
+            border-radius: 6px; font-family: monospace; font-size: 0.85em; color: var(--accent-color); 
+        }
+        .markdown-body pre { 
+            background-color: #121212; padding: 20px; border-radius: 12px; 
+            overflow: auto; margin: 20px 0; border: 1px solid var(--border-glass); 
+        }
+        .markdown-body pre code { background: transparent; padding: 0; color: #e0e0e0; font-size: 0.9rem; }
+
+        /* Links & Quotes */
+        .markdown-body a { color: var(--accent-color); text-decoration: none; border-bottom: 1px solid transparent; transition: 0.2s; }
+        .markdown-body a:hover { border-bottom-color: var(--accent-color); opacity: 0.8; }
+        .markdown-body blockquote { 
+            border-left: 4px solid var(--accent-color); color: #ccc; 
+            padding: 10px 20px; margin: 20px 0; background: rgba(212, 217, 74, 0.05); border-radius: 0 8px 8px 0; 
+        }
+
+        /* Tables */
+        .markdown-body table { 
+            border-collapse: separate; border-spacing: 0; width: 100%; margin: 30px 0; 
+            border-radius: 12px; overflow: hidden; border: 1px solid var(--border-glass); 
+        }
+        .markdown-body th, .markdown-body td { border-bottom: 1px solid var(--border-glass); padding: 14px 16px; text-align: left; }
+        .markdown-body th { background: rgba(255,255,255,0.05); font-weight: 700; color: #fff; }
+        .markdown-body tr:last-child td { border-bottom: none; }
+        .markdown-body tr:nth-child(even) { background-color: rgba(255,255,255,0.02); }
 
         /* Footer */
         footer {
-            text-align: center;
-            padding: 40px 20px;
-            font-size: 0.8rem;
-            color: #ccc; /* 희미하게 */
+            text-align: center; padding: 40px 20px; font-size: 0.85rem; color: #555;
+            border-top: 1px solid var(--border-glass); margin-top: auto; z-index: 1; background: #151515;
         }
-        footer a { color: inherit; text-decoration: none; transition: color 0.2s; }
-        footer a:hover { color: #999; text-decoration: underline; }
+        footer a { color: #777; text-decoration: none; }
+        footer a:hover { color: var(--accent-color); }
 
-        /* Markdown Styles */
-        .markdown-body h1, .markdown-body h2 { border-bottom: 1px solid #eaecef; padding-bottom: .3em; margin-top: 24px; }
-        .markdown-body code { background-color: #f6f8fa; padding: 0.2em 0.4em; border-radius: 6px; font-family: monospace; font-size: 0.9em; }
-        .markdown-body pre { background-color: #161b22; padding: 16px; border-radius: 8px; overflow: auto; margin: 16px 0; }
-        .markdown-body pre code { background-color: transparent; color: #f0f6fc; padding: 0; }
-        .markdown-body blockquote { border-left: 4px solid #dfe2e5; color: #6a737d; padding-left: 1em; margin-left: 0; }
-        .markdown-body table { border-collapse: collapse; width: 100%; margin: 1em 0; }
-        .markdown-body th, .markdown-body td { border: 1px solid #dfe2e5; padding: 8px 13px; }
-        .markdown-body tr:nth-child(2n) { background-color: #f6f8fa; }
-        .markdown-body img { max-width: 100%; border-radius: 8px; }
-        .markdown-body a { color: var(--brand-color); text-decoration: none; }
-        .markdown-body a:hover { text-decoration: underline; }
-
-        /* Toast */
+        /* Toast & Loader */
         #toast {
-            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
-            background: rgba(0,0,0,0.8); color: white; padding: 12px 24px;
-            border-radius: 50px; font-size: 14px; opacity: 0; pointer-events: none;
-            transition: opacity 0.3s; z-index: 1000;
+            position: fixed; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: var(--accent-color); color: var(--bg-main); padding: 12px 24px;
+            border-radius: 50px; font-size: 14px; font-weight: 700; opacity: 0; pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); z-index: 1000; 
+            box-shadow: 0 10px 30px rgba(212, 217, 74, 0.3);
         }
-        #toast.show { opacity: 1; }
+        #toast.show { opacity: 1; transform: translateX(-50%) translateY(-10px); }
 
-        /* Loader */
-        .loader { text-align: center; padding: 50px; color: #888; font-size: 0.9rem; }
+        .loader { 
+            display: flex; justify-content: center; align-items: center; height: 200px; 
+            color: var(--accent-color); font-weight: 700; letter-spacing: 2px; 
+        }
+        .error-msg { text-align: center; color: #FF3B30; padding: 40px; }
     </style>
 </head>
 <body>
+    <div class="bg-glow-hero"></div>
 
     <div class="hero">
-        <h1>Auto Daily Check-in</h1>
-        <p>각종 게임 및 웹사이트의 자동 출석 체크를 돕는 간편한 크롬 확장 프로그램입니다.</p>
+        <h1>Endfield Auto Check-in</h1>
+        <p>명일방주: 엔드필드(SKPORT) 자동 출석체크 서비스</p>
         
-        <div id="lastUpdate" class="last-update">업데이트 확인 중...</div>
+        <div class="lang-switch">
+            <button class="lang-btn active" onclick="switchLanguage('kr')">한국어</button>
+            <button class="lang-btn" onclick="switchLanguage('en')">English</button>
+        </div>
 
         <div class="btn-group">
             <button class="btn btn-primary" onclick="copyCloneCmd()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                Clone 명령어 복사
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                Copy Clone
             </button>
-
             <a id="zipLink" href="#" class="btn btn-outline">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                ZIP 다운로드
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                Download ZIP
             </a>
         </div>
+        <div id="lastUpdate" class="last-update">Checking updates...</div>
     </div>
 
     <div class="container">
         <div id="content" class="markdown-body">
-            <div class="loader">README 파일을 불러오고 있습니다...</div>
+            <div class="loader">SYNCING REPO...</div>
         </div>
     </div>
 
     <footer>
-        <a href="https://github.com/kgyujin/auto-daily-checkin" target="_blank">
-            https://github.com/kgyujin/auto-daily-checkin
-        </a>
+        <a href="https://github.com/kgyujin/auto-daily-checkin" target="_blank">View on GitHub</a>
+        <br><br>
+        © 2024 Endfield Auto Check-in. Not affiliated with GRYPHLINE.
     </footer>
 
-    <div id="toast">명령어가 복사되었습니다!</div>
+    <div id="toast">Copied to clipboard!</div>
 
     <script>
         // ==========================================
-        // 설정 영역
+        // ⚙️ Configuration
         // ==========================================
-        const USER_NAME = "kgyujin"; 
-        const REPO_NAME = "auto-daily-checkin"; 
-        const BRANCH = "main"; // 기본 브랜치 (main 또는 master)
+        const USER = "kgyujin"; 
+        const REPO = "auto-daily-checkin"; 
+        const BRANCH = "main"; 
         // ==========================================
 
-        const GITHUB_REPO_URL = `https://github.com/${USER_NAME}/${REPO_NAME}`;
-        const RAW_README_URL = `https://raw.githubusercontent.com/${USER_NAME}/${REPO_NAME}/${BRANCH}/README.md`;
-        const API_COMMIT_URL = `https://api.github.com/repos/${USER_NAME}/${REPO_NAME}/commits/${BRANCH}`;
+        const API_BASE = `https://api.github.com/repos/${USER}/${REPO}`;
+        const RAW_BASE = `https://raw.githubusercontent.com/${USER}/${REPO}/${BRANCH}`;
 
-        // 1. 초기화: ZIP 링크 설정
-        document.getElementById('zipLink').href = `${GITHUB_REPO_URL}/archive/refs/heads/${BRANCH}.zip`;
+        // Initialize
+        document.getElementById('zipLink').href = `https://github.com/${USER}/${REPO}/archive/refs/heads/${BRANCH}.zip`;
+        fetchLastCommit();
+        switchLanguage('kr'); // Default Language
 
-        // 2. 마지막 커밋 날짜 가져오기 (KST 변환)
-        fetch(API_COMMIT_URL)
-            .then(res => res.json())
-            .then(data => {
-                const dateStr = data.commit.committer.date;
-                const dateObj = new Date(dateStr);
-                
-                // 한국 시간 포맷팅
-                const kstDate = new Intl.DateTimeFormat('ko-KR', {
-                    timeZone: 'Asia/Seoul',
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }).format(dateObj);
-
-                document.getElementById('lastUpdate').innerText = `마지막 업데이트: ${kstDate} (KST)`;
-            })
-            .catch(() => {
-                document.getElementById('lastUpdate').style.display = 'none';
-            });
-
-        // 3. README.md 렌더링
-        fetch(RAW_README_URL)
-            .then(response => {
-                if (!response.ok) throw new Error("README 로드 실패");
-                return response.text();
-            })
-            .then(text => {
-                // 이미지 경로 보정 (상대 경로 -> 절대 경로)
-                // 예: ./images/icon.png -> https://raw.github.../images/icon.png
-                const fixedText = text.replace(
-                    /!\[(.*?)\]\(\.\/(.*?)\)/g, 
-                    `![$1](https://raw.githubusercontent.com/${USER_NAME}/${REPO_NAME}/${BRANCH}/$2)`
-                );
-                
-                document.getElementById('content').innerHTML = marked.parse(fixedText);
-                hljs.highlightAll();
-            })
-            .catch(err => {
-                document.getElementById('content').innerHTML = `
-                    <div style="text-align:center; padding: 40px; color:#ff4d4f;">
-                        <h3>문서를 불러오지 못했습니다.</h3>
-                        <p>${err.message}</p>
-                        <p>리포지토리가 Public 상태인지 확인해주세요.</p>
-                    </div>`;
-            });
-
-        // 4. 유틸리티 함수
-        function copyCloneCmd() {
-            const cmd = `git clone ${GITHUB_REPO_URL}.git`;
-            navigator.clipboard.writeText(cmd).then(() => {
-                showToast(`✅ 클립보드에 복사됨: ${cmd}`);
-            });
+        // 1. Fetch Last Commit Date
+        function fetchLastCommit() {
+            fetch(`${API_BASE}/commits/${BRANCH}`)
+                .then(res => res.json())
+                .then(data => {
+                    const date = new Date(data.commit.committer.date);
+                    const dateStr = new Intl.DateTimeFormat('ko-KR', { 
+                        year: 'numeric', month: '2-digit', day: '2-digit' 
+                    }).format(date);
+                    document.getElementById('lastUpdate').innerText = `Last Update: ${dateStr}`;
+                })
+                .catch(() => { 
+                    document.getElementById('lastUpdate').style.display = 'none'; 
+                });
         }
 
-        function showToast(msg) {
-            const toast = document.getElementById('toast');
-            toast.innerText = msg;
-            toast.classList.add('show');
-            setTimeout(() => toast.classList.remove('show'), 2000);
+        // 2. Load & Parse README
+        function switchLanguage(lang) {
+            // UI Toggle
+            document.querySelectorAll('.lang-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`.lang-btn[onclick*="${lang}"]`).classList.add('active');
+
+            const fileName = lang === 'en' ? 'README.en.md' : 'README.md';
+            const url = `${RAW_BASE}/${fileName}`;
+
+            const contentDiv = document.getElementById('content');
+            contentDiv.innerHTML = '<div class="loader">SYNCING REPO...</div>';
+
+            fetch(url)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Failed to load ${fileName}`);
+                    return res.text();
+                })
+                .then(text => {
+                    // [Smart Filtering] 
+                    // README 상단의 헤더, 배지, 테이블 등을 제거하고 본문("## ✨" 또는 "## Key Features")부터 표시
+                    const lines = text.split('\n');
+                    let startIndex = 0;
+                    
+                    for(let i=0; i<lines.length; i++) {
+                        // "## ✨" 또는 "## Key Features" 섹션을 찾으면 거기서부터 시작
+                        if (lines[i].includes('## ✨') || lines[i].includes('## Key Features')) {
+                            startIndex = i;
+                            break;
+                        }
+                    }
+                    
+                    // 만약 못 찾으면 "##" (첫 번째 헤더)부터 시작, 그것도 없으면 전체 출력
+                    if (startIndex === 0) {
+                        for(let i=0; i<lines.length; i++) {
+                            if (lines[i].startsWith('## ')) {
+                                startIndex = i;
+                                break;
+                            }
+                        }
+                    }
+
+                    const filteredText = lines.slice(startIndex).join('\n');
+
+                    // [Image Path Fix] 상대 경로(./images/...)를 절대 경로(raw.github...)로 변환
+                    const fixedText = filteredText.replace(
+                        /!\[(.*?)\]\(\.\/(.*?)\)/g, 
+                        `![$1](${RAW_BASE}/$2)`
+                    );
+
+                    // Markdown Rendering
+                    contentDiv.innerHTML = marked.parse(fixedText);
+                    hljs.highlightAll();
+                })
+                .catch(err => {
+                    contentDiv.innerHTML = `
+                        <div class="error-msg">
+                            <h3>Document Load Failed</h3>
+                            <p>Cannot sync with GitHub repository.</p>
+                            <small>${err.message}</small>
+                        </div>`;
+                });
+        }
+
+        // 3. Utils
+        function copyCloneCmd() {
+            const cmd = `git clone https://github.com/${USER}/${REPO}.git`;
+            navigator.clipboard.writeText(cmd).then(() => {
+                const toast = document.getElementById('toast');
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 2000);
+            });
         }
     </script>
 </body>

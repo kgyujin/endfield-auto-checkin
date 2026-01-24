@@ -1,37 +1,31 @@
 {
   "manifest_version": 3,
-  "name": "Auto Daily Check-in",
-  "version": "8.3",
-  "description": "Automate daily check-ins for multiple games and platforms.",
+  "name": "Endfield Auto Check-in",
+  "version": "13.3",
+  "description": "Automated daily check-in for Arknights: Endfield (SKPORT)",
   "permissions": [
-    "tabs",
-    "scripting",
     "alarms",
     "notifications",
     "storage",
+    "cookies",
     "activeTab",
-    "cookies"
+    "scripting"
   ],
   "host_permissions": [
-    "<all_urls>",
-    "https://*.hoyolab.com/*",
-    "https://*.mihoyo.com/*"
+    "https://*.skport.com/*",
+    "https://*.gryphline.com/*",
+    "https://zonai.skport.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"
-  },
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://game.skport.com/endfield/sign-in*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

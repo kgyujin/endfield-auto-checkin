@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Auto Daily Check-in",
-  "version": "8.2",
+  "version": "8.3",
   "description": "Automate daily check-ins for multiple games and platforms.",
   "permissions": [
     "tabs",
@@ -9,10 +9,13 @@
     "alarms",
     "notifications",
     "storage",
-    "activeTab"
+    "activeTab",
+    "cookies"
   ],
   "host_permissions": [
-    "https://*.skport.com/*"
+    "<all_urls>",
+    "https://*.hoyolab.com/*",
+    "https://*.mihoyo.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -25,5 +28,12 @@
   },
   "background": {
     "service_worker": "background.js"
-  }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
 }

@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <title>Endfield Check-in</title>
     <link rel="stylesheet" href="popup.css">
+    <style>
+        /* 버튼 정렬을 위한 추가 스타일 */
+        .btn-group-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+        .btn-danger { color: #FF3B30; font-size: 11px; padding: 4px 8px; background: none; border: none; cursor: pointer; opacity: 0.8; }
+        .btn-danger:hover { opacity: 1; text-decoration: underline; }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -13,12 +19,8 @@
             </div>
             <div class="header-controls">
                 <button id="btnSettings" class="icon-btn" title="설정 및 기록">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="3"></circle>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                    </svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
-                
                 <label class="switch">
                     <input type="checkbox" id="globalToggle">
                     <span class="slider round"></span>
@@ -32,18 +34,19 @@
                 <div id="statusDisplay" class="status-value">-</div>
                 <div id="lastRunDisplay" class="status-time">마지막 실행: -</div>
             </div>
-            
-            <button id="runNowBtn" class="btn-primary full-width">
-                CHECK NOW
-            </button>
+            <button id="runNowBtn" class="btn-primary full-width">CHECK NOW</button>
             <a href="https://game.skport.com/endfield/sign-in" target="_blank" class="site-link">출석 사이트 바로가기 ↗</a>
         </div>
 
         <div id="settingsView" style="display: none;">
             <div class="section-title">계정 연동 상태</div>
+            
             <div class="sync-box">
                 <div id="userInfo" class="sync-info">정보 없음</div>
-                <button id="btnSync" class="btn-primary small">계정 연동 갱신</button>
+                <div class="btn-group-col">
+                    <button id="btnSync" class="btn-primary small">계정 연동 갱신</button>
+                    <button id="btnUnlink" class="btn-danger">연동 해제</button>
+                </div>
             </div>
 
             <div class="section-title">최근 3일 기록</div>

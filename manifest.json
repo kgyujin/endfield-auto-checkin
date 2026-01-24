@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Endfield Auto Check-in",
-  "version": "13.3",
-  "description": "Automated daily check-in for Arknights: Endfield (SKPORT)",
+  "name": "명일방주: 엔드필드 자동 출석체크(Arknights: Endfield Auto Check-in)",
+  "version": "13.4",
+  "description": "Automated daily check-in for Arknights: Endfield",
   "permissions": [
     "alarms",
     "notifications",
@@ -16,6 +16,11 @@
     "https://*.gryphline.com/*",
     "https://zonai.skport.com/*"
   ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icon.png"

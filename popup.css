@@ -2,68 +2,137 @@
 
 :root {
     --bg-main: #1A1A1A;
-    --accent-color: #D4D94A; 
+    --accent-color: #D4D94A; /* 라임 골드 */
     --accent-glow: rgba(212, 217, 74, 0.4);
     --text-main: #F0F0F0;
     --text-sub: #888;
     --glass-bg: rgba(255, 255, 255, 0.05);
     --glass-border: rgba(255, 255, 255, 0.1);
+    
+    /* 상태 색상 */
     --success: #34C759;
     --error: #FF3B30;
+    --wait: #FF9500;
 }
 
 body {
-    width: 300px; height: 380px;
+    width: 300px;
+    height: 380px;
     font-family: "Pretendard", sans-serif;
     margin: 0; background-color: var(--bg-main); color: var(--text-main);
     overflow: hidden;
 }
 
-.app-container { padding: 20px; height: 100%; box-sizing: border-box; }
+.app-container {
+    padding: 20px; height: 100%; box-sizing: border-box;
+}
 
+/* Header */
 header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-.glow-text { font-size: 18px; font-weight: 800; margin: 0; line-height: 1; color: var(--text-main); text-shadow: 0 0 10px var(--accent-glow); }
-.header-controls { display: flex; align-items: center; gap: 10px; }
+.glow-text {
+    font-size: 18px; font-weight: 800; margin: 0; line-height: 1; 
+    color: var(--text-main); text-shadow: 0 0 10px var(--accent-glow);
+}
+.header-controls { display: flex; align-items: center; gap: 12px; }
 
-.icon-btn { background: none; border: none; color: var(--text-sub); cursor: pointer; padding: 4px; transition: color 0.2s; }
+/* Icon Button (Gear) */
+.icon-btn {
+    background: none; border: none; color: var(--text-sub); 
+    cursor: pointer; padding: 4px; transition: color 0.2s;
+}
 .icon-btn:hover { color: var(--text-main); }
 
+/* Switch Toggle */
 .switch { position: relative; display: inline-block; width: 34px; height: 20px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); border-radius: 20px; transition: .3s; }
-.slider:before { position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #aaa; border-radius: 50%; transition: .3s; }
+.slider {
+    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+    background-color: rgba(255,255,255,0.1); border-radius: 20px; transition: .3s;
+}
+.slider:before {
+    position: absolute; content: ""; height: 14px; width: 14px; left: 3px; bottom: 3px;
+    background-color: #aaa; border-radius: 50%; transition: .3s;
+}
 input:checked + .slider { background-color: var(--accent-color); }
-input:checked + .slider:before { transform: translateX(14px); background-color: #000; }
+input:checked + .slider:before { transform: translateX(14px); background-color: #1A1A1A; }
 
+/* Views Layout */
 #mainView, #settingsView { height: 100%; display: flex; flex-direction: column; }
 
-.status-card { background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 20px; }
-.status-header { font-size: 10px; color: var(--text-sub); font-weight: 700; margin-bottom: 8px; }
+/* Status Card */
+.status-card {
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    border-radius: 12px; padding: 20px; text-align: center; 
+    margin-bottom: 20px; backdrop-filter: blur(5px);
+}
+.status-header { font-size: 10px; color: var(--text-sub); font-weight: 700; margin-bottom: 8px; letter-spacing: 1px; }
 .status-value { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
 .status-time { font-size: 11px; color: var(--text-sub); }
 
-.btn-primary { background: var(--accent-color); color: #000; border: none; border-radius: 8px; padding: 12px; font-size: 13px; font-weight: 800; cursor: pointer; transition: 0.2s; }
-.btn-primary:hover { background: #E6EB5C; box-shadow: 0 0 15px var(--accent-glow); }
+/* Buttons */
+.btn-primary {
+    background: var(--accent-color); color: #1A1A1A; border: none;
+    border-radius: 8px; padding: 12px; font-size: 13px; font-weight: 800;
+    cursor: pointer; transition: all 0.2s;
+}
+.btn-primary:hover { 
+    background: #E6EB5C; 
+    box-shadow: 0 0 15px var(--accent-glow); 
+}
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .full-width { width: 100%; }
 .small { width: auto; padding: 6px 12px; font-size: 11px; }
-.btn-text { background: none; border: none; color: var(--text-sub); margin-top: auto; cursor: pointer; font-size: 12px; }
 
-.section-title { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; margin-top: 10px; }
-.sync-box { background: var(--glass-bg); border-radius: 8px; padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-.sync-info { font-size: 11px; font-weight: 600; }
+/* 돌아가기 버튼 등 텍스트 버튼 스타일 */
+.btn-text {
+    background: none; border: none; color: var(--text-sub); 
+    margin-top: auto; /* 상단 여백을 자동으로 채워 하단으로 밀어냄 */
+    margin-bottom: 20px; /* [수정] 텍스트 아래 여백 추가 */
+    cursor: pointer; font-size: 12px;
+}
+.btn-text:hover { color: var(--text-main); text-decoration: underline; }
+
+/* 버튼 그룹 (연동/해제) */
+.btn-group-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
+.btn-danger { color: #FF3B30; font-size: 11px; padding: 4px 8px; background: none; border: none; cursor: pointer; opacity: 0.8; }
+.btn-danger:hover { opacity: 1; text-decoration: underline; }
+
+/* Settings & Logs */
+.section-title { font-size: 11px; font-weight: 700; color: var(--text-sub); margin-bottom: 8px; margin-top: 5px; }
+
+.sync-box {
+    background: var(--glass-bg); border-radius: 8px; padding: 12px; 
+    display: flex; justify-content: space-between; align-items: center; 
+    margin-bottom: 15px; border: 1px solid var(--glass-border);
+}
+.sync-info { font-size: 11px; font-weight: 600; text-align: left; line-height: 1.4; }
 
 .log-list { 
-    flex-grow: 1; overflow: hidden; /* 스크롤바 숨김 */
+    flex-grow: 1; 
+    overflow-y: scroll; /* 스크롤 가능 */
+    scrollbar-width: none; /* 파이어폭스 스크롤바 숨김 */
+    -ms-overflow-style: none; /* IE 스크롤바 숨김 */
     font-size: 11px; 
+    border-top: 1px solid var(--glass-border);
+    margin-bottom: 10px;
+    padding-top: 5px;
 }
-.log-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--glass-border); }
+.log-list::-webkit-scrollbar { display: none; } /* 크롬 스크롤바 숨김 */
+
+.log-item { 
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05); 
+}
 .log-item:last-child { border-bottom: none; }
-.log-date { color: var(--text-sub); font-size: 10px; margin-bottom: 2px; }
-.log-msg { color: var(--text-main); }
-.log-status.SUCCESS { color: var(--success); }
-.log-status.ALREADY_DONE { color: var(--success); }
-.log-status.FAIL, .log-status.ERROR { color: var(--error); }
+.log-date { color: var(--text-sub); font-size: 10px; }
+.log-msg { color: var(--text-main); font-weight: 500; }
+
+/* Log Status Colors */
+.log-status.SUCCESS, .log-status.ALREADY_DONE { color: var(--success); }
+.log-status.FAIL, .log-status.NOT_LOGGED_IN, .log-status.ERROR { color: var(--error); }
 .log-status.SYNC { color: var(--accent-color); }
+.log-status.LOGOUT { color: var(--text-sub); }
 
 .site-link { display: block; text-align: center; font-size: 11px; color: var(--text-sub); text-decoration: none; margin-top: 10px; }
 .site-link:hover { color: var(--accent-color); }

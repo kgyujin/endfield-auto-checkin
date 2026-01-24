@@ -20,16 +20,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('mainView').style.display = 'block';
     });
 
-    // [핵심] 계정 연동 버튼
+    // 계정 연동 버튼
     document.getElementById('btnSync').addEventListener('click', handleSyncClick);
     
+    // 수동 실행 버튼
     document.getElementById('runNowBtn').addEventListener('click', handleManualRun);
     
+    // 토글 스위치
     document.getElementById('globalToggle').addEventListener('change', (e) => {
         storage.set({ isGlobalActive: e.target.checked });
         location.reload();
     });
 
+    // 연동 해제 버튼
     document.getElementById('btnUnlink').addEventListener('click', () => {
         if (!confirm("정말 계정 연동을 해제하시겠습니까?\n자동 출석이 중단됩니다.")) return;
         chrome.runtime.sendMessage({ action: "logout" }, (res) => {
@@ -58,10 +61,8 @@ async function handleSyncClick() {
     btn.innerText = "분석 중...";
     btn.disabled = true;
 
-    // 현재 탭 확인
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
-    // 1. 엔드필드 사이트인지 확인
     if (!tab.url.includes("skport.com")) {
         alert("SKPORT 엔드필드 출석체크 페이지에서 실행해주세요.");
         btn.innerText = "계정 연동 갱신";
@@ -69,12 +70,9 @@ async function handleSyncClick() {
         return;
     }
 
-    // 2. content.js에 로컬 스토리지 데이터 요청
     chrome.tabs.sendMessage(tab.id, { action: "getLocalStorage" }, (response) => {
-        // 응답이 없어도(null) 백그라운드에서 쿠키로 시도하도록 함
         const storageData = response || {};
 
-        // 3. 백그라운드에 최종 연동 요청 (스토리지 데이터 + 쿠키 스캔 요청)
         chrome.runtime.sendMessage({ 
             action: "syncAccount", 
             storageData: storageData 
@@ -109,11 +107,11 @@ function renderStatus(data) {
         return;
     }
 
-    // ALREADY_DONE도 SUCCESS로 통합 저장되므로 SUCCESS만 체크
+    // [수정] '완료 (O)' -> '완료'
     if (data.lastStatus === "SUCCESS") {
-        statusEl.innerHTML = '<span style="color:#34C759">완료 (O)</span>';
+        statusEl.innerHTML = '<span style="color:#34C759">완료</span>';
     } else if (data.lastStatus === "FAIL" || data.lastStatus === "NOT_LOGGED_IN") {
-        statusEl.innerHTML = '<span style="color:#FF3B30">실패 (X)</span>';
+        statusEl.innerHTML = '<span style="color:#FF3B30">실패</span>';
     } else {
         statusEl.innerHTML = '<span style="color:#FF9500">대기 중</span>';
     }

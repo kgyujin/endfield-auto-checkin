@@ -8,8 +8,7 @@
     "notifications",
     "storage",
     "cookies",
-    "activeTab",
-    "scripting"
+    "activeTab"
   ],
   "host_permissions": [
     "https://*.skport.com/*",

@@ -1,11 +1,11 @@
 /**
- * Endfield Auto Check-in v13.8 (Communication Fixed)
+ * Endfield Auto Check-in v13.9
+ * Feature: Auto-run immediately after sync
  */
 
 const API_ATTEND = "https://zonai.skport.com/web/v1/game/endfield/attendance";
 const API_BINDING = "https://zonai.skport.com/api/v1/game/player/binding";
 const REFERER_URL = "https://game.skport.com/";
-// [중요] 쿠키 탐색 도메인 명시
 const TARGET_DOMAINS = ["skport.com", "game.skport.com", "gryphline.com"];
 const ALARM_NAME = "dailyCheckIn";
 
@@ -93,7 +93,6 @@ class CheckInService {
         }
     }
 
-    // [강화] 모든 도메인 쿠키 수집
     async getAllCookies() {
         let allCookies = [];
         for (const domain of TARGET_DOMAINS) {
@@ -106,7 +105,6 @@ class CheckInService {
     }
 
     findCredInCookies(cookies) {
-        // sk_cred가 cred보다 우선순위가 높을 수 있음
         const target = cookies.find(c => c.name === 'cred' || c.name === 'sk_cred');
         return target ? target.value : null;
     }
@@ -131,26 +129,14 @@ class CheckInService {
     async syncAccountData(localStorageData) {
         try {
             const cookies = await this.getAllCookies();
-            
-            // 1. cred 찾기 (로컬스토리지 우선 -> 쿠키)
             let cred = localStorageData?.cred || this.findCredInCookies(cookies);
             
-            if (!cred) {
-                // ZIP 파일 버전처럼 정밀 스캔에도 없으면 실패
-                throw new Error("로그인 정보를 찾을 수 없습니다. 사이트 로그인 상태를 확인해주세요.");
-            }
+            if (!cred) throw new Error("로그인 정보를 찾을 수 없습니다. 사이트 로그인 상태를 확인해주세요.");
 
-            // 2. role 찾기 (로컬스토리지 우선 -> API 조회)
             let role = localStorageData?.role;
-            if (!role) {
-                role = await this.fetchGameRole(cred);
-            }
-            
-            if (!role) {
-                console.warn("캐릭터 정보(Role)를 찾지 못했습니다. (연동은 진행)");
-            }
+            if (!role) role = await this.fetchGameRole(cred);
+            if (!role) console.warn("캐릭터 정보(Role)를 찾지 못했습니다. (연동은 진행)");
 
-            // 3. API 테스트
             const headers = await this.getHeaders("GET", cred, role);
             const response = await this.fetchWithRetry(API_ATTEND, {
                 method: "GET", headers: headers, credentials: "include"
@@ -179,7 +165,6 @@ class CheckInService {
             const account = await this.store.getAccount();
             if (!account || !account.cred) return { code: "FAIL", msg: "계정 연동 필요" };
 
-            // 1. GET (상태 확인)
             const getHeaders = await this.getHeaders("GET", account.cred, account.role);
             const getRes = await this.fetchWithRetry(API_ATTEND, {
                 method: "GET", headers: getHeaders, credentials: "include"
@@ -190,7 +175,6 @@ class CheckInService {
                  return { code: "ALREADY_DONE", msg: "이미 완료됨" };
             }
 
-            // 2. POST (출석)
             const postHeaders = await this.getHeaders("POST", account.cred, account.role);
             const postRes = await this.fetchWithRetry(API_ATTEND, {
                 method: "POST", headers: postHeaders, credentials: "include", body: JSON.stringify({})
@@ -227,8 +211,13 @@ class CheckInController {
             } 
             else if (msg.action === "syncAccount") {
                 this.service.syncAccountData(msg.storageData).then(res => {
-                    if(res.code === "SUCCESS") this.store.addLog("SYNC", "계정 연동 성공");
-                    else this.store.addLog("ERROR", res.msg);
+                    if(res.code === "SUCCESS") {
+                        this.store.addLog("SYNC", "계정 연동 성공");
+                        // [추가] 연동 성공 시 즉시 출석 시도 (강제 실행)
+                        this.run(true); 
+                    } else {
+                        this.store.addLog("ERROR", res.msg);
+                    }
                     sendResponse(res);
                 });
                 return true; 
@@ -252,6 +241,7 @@ class CheckInController {
         const serverToday = this.service.getServerTodayString();
         const lastStatus = await this.store.get('lastStatus');
 
+        // 스마트 스케줄링: 오늘 이미 성공했다면 실행 안 함 (부하 방지)
         if (!force && lastDate === serverToday && lastStatus === "SUCCESS") {
             this.clearBadge(); return;
         }

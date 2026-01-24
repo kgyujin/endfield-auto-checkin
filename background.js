@@ -1,11 +1,12 @@
 /**
- * Endfield Auto Check-in v13.5 (Full Cookie Backup)
+ * Endfield Auto Check-in v13.8 (Communication Fixed)
  */
 
 const API_ATTEND = "https://zonai.skport.com/web/v1/game/endfield/attendance";
 const API_BINDING = "https://zonai.skport.com/api/v1/game/player/binding";
 const REFERER_URL = "https://game.skport.com/";
-const TARGET_DOMAINS = ["skport.com", "gryphline.com"];
+// [중요] 쿠키 탐색 도메인 명시
+const TARGET_DOMAINS = ["skport.com", "game.skport.com", "gryphline.com"];
 const ALARM_NAME = "dailyCheckIn";
 
 class AccountStore {
@@ -28,10 +29,8 @@ class AccountStore {
     async saveAccount(info) { await this.set('accountInfo', info); }
     async getAccount() { return await this.get('accountInfo'); }
     async isAutoRunActive() { return (await this.get('isGlobalActive')) !== false; }
-    
-    // 실행 결과 저장 (ALREADY_DONE -> SUCCESS 변환)
+
     async saveResult(status, date, time) {
-        // UI에는 성공으로 표시하기 위해 변환
         const uiStatus = (status === "ALREADY_DONE") ? "SUCCESS" : status;
         await this.set('lastStatus', uiStatus);
         await this.set('lastCheckDate', date);
@@ -49,7 +48,6 @@ class CheckInService {
         return utc8Time.toISOString().split('T')[0];
     }
 
-    // --- 헤더 생성 (저장된 정보 사용) ---
     async getHeaders(method, cred, role) {
         const timestamp = Math.floor(Date.now() / 1000).toString();
         const headers = {
@@ -58,9 +56,6 @@ class CheckInService {
             "Accept-Language": "ko,ko-KR;q=0.9,en-US;q=0.8,en;q=0.7",
             "Origin": "https://game.skport.com",
             "Referer": REFERER_URL,
-            "Sec-Ch-Ua": "\"Not(A:Brand\";v=\"8\", \"Chromium\";v=\"144\", \"Google Chrome\";v=\"144\"",
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": "\"macOS\"",
             "User-Agent": navigator.userAgent,
             "Platform": "3",
             "Vname": "1.0.0",
@@ -70,7 +65,6 @@ class CheckInService {
 
         if (method === "POST") headers["Content-Type"] = "application/json";
         
-        // 인자로 받은 cred/role이 없으면 저장소에서 로드
         if (!cred || !role) {
             const account = await this.store.getAccount();
             if (account) {
@@ -99,25 +93,24 @@ class CheckInService {
         }
     }
 
-    // --- 데이터 수집 및 연동 ---
-    
-    // 1. 모든 쿠키 가져오기
+    // [강화] 모든 도메인 쿠키 수집
     async getAllCookies() {
         let allCookies = [];
         for (const domain of TARGET_DOMAINS) {
-            const cookies = await chrome.cookies.getAll({ domain: domain });
-            allCookies = allCookies.concat(cookies);
+            try {
+                const cookies = await chrome.cookies.getAll({ domain: domain });
+                allCookies = allCookies.concat(cookies);
+            } catch(e) {}
         }
         return allCookies;
     }
 
-    // 2. 쿠키에서 cred 찾기
     findCredInCookies(cookies) {
+        // sk_cred가 cred보다 우선순위가 높을 수 있음
         const target = cookies.find(c => c.name === 'cred' || c.name === 'sk_cred');
         return target ? target.value : null;
     }
 
-    // 3. API로 role 조회
     async fetchGameRole(cred) {
         try {
             const headers = await this.getHeaders("GET", cred, null);
@@ -132,36 +125,32 @@ class CheckInService {
                 return `3_${roleData.roleId}_${roleData.serverId}`;
             }
             return null;
-        } catch (e) {
-            return null;
-        }
+        } catch (e) { return null; }
     }
 
-    // [핵심] 연동 로직
     async syncAccountData(localStorageData) {
         try {
-            // 1. 쿠키 수집
             const cookies = await this.getAllCookies();
             
-            // 2. cred 찾기 우선순위: 로컬스토리지 -> 쿠키
+            // 1. cred 찾기 (로컬스토리지 우선 -> 쿠키)
             let cred = localStorageData?.cred || this.findCredInCookies(cookies);
             
             if (!cred) {
+                // ZIP 파일 버전처럼 정밀 스캔에도 없으면 실패
                 throw new Error("로그인 정보를 찾을 수 없습니다. 사이트 로그인 상태를 확인해주세요.");
             }
 
-            // 3. role 찾기 우선순위: 로컬스토리지 -> API 조회
+            // 2. role 찾기 (로컬스토리지 우선 -> API 조회)
             let role = localStorageData?.role;
             if (!role) {
                 role = await this.fetchGameRole(cred);
             }
             
             if (!role) {
-                // role을 못 찾아도 cred가 있으면 시도해볼 가치는 있음 (경고 로그만 남김)
-                console.warn("캐릭터 정보(Role)를 찾지 못했습니다.");
+                console.warn("캐릭터 정보(Role)를 찾지 못했습니다. (연동은 진행)");
             }
 
-            // 4. API 테스트 (최종 검증)
+            // 3. API 테스트
             const headers = await this.getHeaders("GET", cred, role);
             const response = await this.fetchWithRetry(API_ATTEND, {
                 method: "GET", headers: headers, credentials: "include"
@@ -169,12 +158,11 @@ class CheckInService {
             
             if (!response.ok) throw new Error("API 테스트 실패");
 
-            // 5. 저장
             const accountInfo = {
                 uid: "Linked",
                 cred: cred,
                 role: role || "", 
-                cookies: cookies, // 전체 쿠키 백업
+                cookies: cookies,
                 lastSync: new Date().toLocaleString('ko-KR')
             };
             
@@ -198,7 +186,6 @@ class CheckInService {
             });
             const getData = await getRes.json();
 
-            // 이미 출석했는지 확인
             if (getData.code === 0 && getData.data && getData.data.hasToday) {
                  return { code: "ALREADY_DONE", msg: "이미 완료됨" };
             }
@@ -239,7 +226,6 @@ class CheckInController {
                 this.run(true);
             } 
             else if (msg.action === "syncAccount") {
-                // content.js에서 받은 로컬스토리지 데이터를 서비스로 전달
                 this.service.syncAccountData(msg.storageData).then(res => {
                     if(res.code === "SUCCESS") this.store.addLog("SYNC", "계정 연동 성공");
                     else this.store.addLog("ERROR", res.msg);
@@ -264,9 +250,8 @@ class CheckInController {
 
         const lastDate = await this.store.get('lastCheckDate');
         const serverToday = this.service.getServerTodayString();
-        const lastStatus = await this.store.get('lastStatus'); // SUCCESS or FAIL
+        const lastStatus = await this.store.get('lastStatus');
 
-        // 이미 성공했으면 스킵
         if (!force && lastDate === serverToday && lastStatus === "SUCCESS") {
             this.clearBadge(); return;
         }
@@ -284,7 +269,6 @@ class CheckInController {
 
         if (result.code === "SUCCESS" || result.code === "ALREADY_DONE") {
             this.clearBadge();
-            // ALREADY_DONE도 SUCCESS로 저장
             await this.store.saveResult("SUCCESS", serverToday, timeString);
             if (result.code === "SUCCESS") this.notify("출석 완료", "보상 지급됨");
         } else {

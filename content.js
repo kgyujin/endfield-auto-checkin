@@ -56,7 +56,7 @@ function scanForAccountData() {
                     } catch (e) { /* JSON 파싱 에러 무시 */ }
                 }
             }
-        } catch(e) { console.error("Storage Access Error:", e); }
+        } catch (e) { console.error("Storage Access Error:", e); }
     });
 
     // B. Cookie 스캔 (HttpOnly가 아닌 것들, 2차 백업)
@@ -64,7 +64,7 @@ function scanForAccountData() {
         const cookies = document.cookie.split(';');
         for (let c of cookies) {
             const parts = c.trim().split('=');
-            if(parts.length < 2) continue;
+            if (parts.length < 2) continue;
             const k = parts[0];
             const v = parts.slice(1).join('='); // 값에 =이 포함될 경우 대비
 
@@ -101,19 +101,79 @@ function showSyncPrompt() {
 
     document.body.appendChild(div);
 
-    document.getElementById('btn-sync-yes').addEventListener('click', () => {
+    document.getElementById('btn-sync-yes').addEventListener('click', async () => {
         const data = scanForAccountData();
-        chrome.runtime.sendMessage({ action: "syncAccount", storageData: data }, (res) => {
+        chrome.runtime.sendMessage({ action: "syncAccount", storageData: data }, async (res) => {
             if (res && res.code === "SUCCESS") {
-                alert("연동 완료!");
+                await showModal("연동 완료!", "성공적으로 계정이 연동되었습니다.");
                 div.remove();
             } else {
-                alert("연동 실패: " + (res ? res.msg : "응답 없음"));
+                await showModal("연동 실패", (res ? res.msg : "응답 없음"), false);
             }
         });
     });
 
     document.getElementById('btn-sync-no').addEventListener('click', () => {
         div.remove();
+    });
+}
+
+function showModal(title, msg, isSuccess = true) {
+    return new Promise((resolve) => {
+        const modalId = 'endfield-custom-modal';
+        if (document.getElementById(modalId)) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = modalId;
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(2px);
+            z-index: 20000; display: flex; justify-content: center; align-items: center;
+            opacity: 0; transition: opacity 0.2s;
+        `;
+
+        const container = document.createElement('div');
+        container.style.cssText = `
+            background: #1A1A1A; width: 300px;
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+            padding: 24px; text-align: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            transform: scale(0.95); transition: transform 0.2s;
+        `;
+
+        const color = isSuccess ? '#D4D94A' : '#FF3B30';
+
+        container.innerHTML = `
+            <div style="font-size:16px; font-weight:700; color:${color}; margin-bottom:12px;">${title}</div>
+            <div style="font-size:14px; color:#F0F0F0; line-height:1.5; margin-bottom:24px;">${msg}</div>
+            <button id="modal-btn-confirm" style="
+                width: 100%; padding: 10px 0; border-radius: 6px; border: none;
+                background: ${color}; color: #1A1A1A; font-size: 13px; font-weight: 800;
+                cursor: pointer;
+            ">확인</button>
+        `;
+
+        overlay.appendChild(container);
+        document.body.appendChild(overlay);
+
+        // Animation start
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+            container.style.transform = 'scale(1)';
+        });
+
+        const close = () => {
+            overlay.style.opacity = '0';
+            container.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                overlay.remove();
+                resolve();
+            }, 200);
+        };
+
+        document.getElementById('modal-btn-confirm').addEventListener('click', close);
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) close();
+        });
     });
 }

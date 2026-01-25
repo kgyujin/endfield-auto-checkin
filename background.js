@@ -177,7 +177,7 @@ class CheckInService {
     async executeAttendance() {
         try {
             const account = await this.store.getAccount();
-            if (!account || !account.cred) return { code: "FAIL", msg: "계정 연동 필요" };
+            if (!account || !account.cred) return { code: "NOT_LOGGED_IN", msg: "계정 연동 필요" };
 
             // 1. GET (상태 확인)
             const getHeaders = await this.getHeaders("GET", account.cred, account.role);
@@ -278,7 +278,13 @@ class CheckInController {
         } else {
             this.setBadgeX();
             await this.store.saveResult("FAIL", serverToday, timeString);
-            if (result.msg.includes("401") || result.code === "FAIL") this.notify("오류", "로그를 확인하세요.");
+
+            // [수정] "계정 연동 필요" (NOT_LOGGED_IN) 상태일 때는 알림을 띄우지 않음
+            if (result.code === "NOT_LOGGED_IN") {
+                // 조용히 실패 처리 (UI에는 빨간불 들어옴)
+            } else if (result.msg.includes("401") || result.code === "FAIL") {
+                this.notify("오류", "로그를 확인하세요.");
+            }
         }
     }
 

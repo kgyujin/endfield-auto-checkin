@@ -132,9 +132,10 @@ class CheckInService {
         try {
             const cookies = await this.getAllCookies();
 
-            // 1. cred 찾기 (로컬스토리지 우선 -> 쿠키)
-            // [수정] 쿠키 우선 -> 로컬스토리지 (CheckInService에서는 이미 쿠키를 수집했지만, content.js에서 보낸 게 더 정확할 수 있음)
-            let cred = localStorageData?.cred || this.findCredInCookies(cookies);
+            // 1. cred 찾기
+            // [수정: 중요] Chrome Cookie API로 찾은 값(HttpOnly 포함)을 1순위로 사용
+            // content.js에서 보낸 값(localStorage/document.cookie)은 2순위 백업으로 사용
+            let cred = this.findCredInCookies(cookies) || localStorageData?.cred;
 
             if (!cred) {
                 // ZIP 파일 버전처럼 정밀 스캔에도 없으면 실패
@@ -275,7 +276,9 @@ class CheckInController {
         if (result.code === "SUCCESS" || result.code === "ALREADY_DONE") {
             this.clearBadge();
             await this.store.saveResult("SUCCESS", serverToday, timeString);
-            if (result.code === "SUCCESS") this.notify("출석 완료", "보상 지급됨");
+            if (result.code === "SUCCESS") {
+                // this.notify("출석 완료", "보상 지급됨"); // [삭제] 사용자 요청으로 알림 제거
+            }
         } else {
             this.setBadgeX();
             await this.store.saveResult("FAIL", serverToday, timeString);
@@ -284,7 +287,7 @@ class CheckInController {
             if (result.code === "NOT_LOGGED_IN") {
                 // 조용히 실패 처리 (UI에는 빨간불 들어옴)
             } else if (result.msg.includes("401") || result.code === "FAIL") {
-                this.notify("오류", "로그를 확인하세요.");
+                // this.notify("오류", "로그를 확인하세요."); // [삭제] 사용자 요청으로 알림 제거
             }
         }
     }
@@ -292,7 +295,8 @@ class CheckInController {
     clearBadge() { chrome.action.setBadgeText({ text: "" }); }
     setBadgeX() { chrome.action.setBadgeText({ text: "X" }); chrome.action.setBadgeBackgroundColor({ color: "#FF3B30" }); }
     notify(title, msg) {
-        chrome.notifications.create({ type: "basic", iconUrl: "icon.png", title: title, message: msg, priority: 1, silent: true });
+        // [삭제] 사용자 요청으로 우측 하단 시스템 알림 기능 비활성화
+        // chrome.notifications.create({ type: "basic", iconUrl: "icon.png", title: title, message: msg, priority: 1, silent: true });
     }
 }
 

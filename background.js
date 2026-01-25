@@ -133,11 +133,12 @@ class CheckInService {
             const cookies = await this.getAllCookies();
 
             // 1. cred 찾기 (로컬스토리지 우선 -> 쿠키)
+            // [수정] 쿠키 우선 -> 로컬스토리지 (CheckInService에서는 이미 쿠키를 수집했지만, content.js에서 보낸 게 더 정확할 수 있음)
             let cred = localStorageData?.cred || this.findCredInCookies(cookies);
 
             if (!cred) {
                 // ZIP 파일 버전처럼 정밀 스캔에도 없으면 실패
-                throw new Error("로그인 정보를 찾을 수 없습니다. 사이트 로그인 상태를 확인해주세요.");
+                throw new Error("로그인 정보를 찾을 수 없습니다.\n사이트에 로그인되어 있는지 확인해주세요.");
             }
 
             // 2. role 찾기 (로컬스토리지 우선 -> API 조회)

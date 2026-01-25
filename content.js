@@ -18,59 +18,54 @@ function scanForAccountData() {
     let cred = null;
     let role = null;
 
-    // A. Storage (Local & Session) 정밀 스캔
-    const storages = [localStorage, sessionStorage];
-    const credRegex = /^[A-Za-z0-9]{32}$/; // 32자리 영문+숫자 (cred 토큰 패턴)
-    const roleRegex = /^\d+_\d+_\d+$/;     // 숫자_숫자_숫자 (role 패턴)
+    // A. [우선순위 변경] Cookie 스캔 (HttpOnly가 아닌 것들, 가장 최신 상태일 확률 높음)
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+        const parts = c.trim().split('=');
+        if (parts.length < 2) continue;
+        const k = parts[0];
+        const v = parts.slice(1).join('=');
 
-    storages.forEach(store => {
-        try {
-            for (let i = 0; i < store.length; i++) {
-                const key = store.key(i);
-                const val = store.getItem(key);
+        if (!cred && (k === 'cred' || k === 'sk_cred')) cred = v;
+        if (!role && (k === 'sk-game-role' || k === 'sk_game_role')) role = decodeURIComponent(v);
+    }
 
-                if (!val) continue;
-
-                // 1) 키 이름으로 찾기
-                if (!cred && (key === 'cred' || key === 'CRED' || key === 'sk_cred')) cred = val;
-                if (!role && (key === 'sk-game-role' || key === 'current_role_id')) role = val;
-
-                // 2) 값의 패턴으로 찾기 (키 이름이 달라도 찾음)
-                if (!cred && credRegex.test(val)) cred = val;
-                if (!role && roleRegex.test(val)) role = val;
-
-                // 3) JSON 내부 탐색 (auth_data 같은 객체 안에 숨은 경우)
-                if ((!cred || !role) && val.startsWith('{')) {
-                    try {
-                        const parsed = JSON.parse(val);
-                        // cred 찾기
-                        if (!cred) {
-                            if (parsed.cred) cred = parsed.cred;
-                            else if (parsed.token && credRegex.test(parsed.token)) cred = parsed.token;
-                        }
-                        // role 찾기
-                        if (!role) {
-                            if (parsed.role) role = parsed.role;
-                            else if (parsed.gameRole) role = parsed.gameRole;
-                        }
-                    } catch (e) { /* JSON 파싱 에러 무시 */ }
-                }
-            }
-        } catch (e) { console.error("Storage Access Error:", e); }
-    });
-
-    // B. Cookie 스캔 (HttpOnly가 아닌 것들, 2차 백업)
+    // B. Storage (Local & Session) 정밀 스캔 (쿠키에 없을 때 백업용)
     if (!cred || !role) {
-        const cookies = document.cookie.split(';');
-        for (let c of cookies) {
-            const parts = c.trim().split('=');
-            if (parts.length < 2) continue;
-            const k = parts[0];
-            const v = parts.slice(1).join('='); // 값에 =이 포함될 경우 대비
+        const storages = [localStorage, sessionStorage];
+        const credRegex = /^[A-Za-z0-9]{32}$/; // 32자리 영문+숫자
+        const roleRegex = /^\d+_\d+_\d+$/;     // 숫자_숫자_숫자
 
-            if (!cred && (k === 'cred' || k === 'sk_cred')) cred = v;
-            if (!role && (k === 'sk-game-role' || k === 'sk_game_role')) role = decodeURIComponent(v);
-        }
+        storages.forEach(store => {
+            try {
+                for (let i = 0; i < store.length; i++) {
+                    const key = store.key(i);
+                    const val = store.getItem(key);
+
+                    if (!val) continue;
+
+                    if (!cred && (key === 'cred' || key === 'CRED' || key === 'sk_cred')) cred = val;
+                    if (!role && (key === 'sk-game-role' || key === 'current_role_id')) role = val;
+
+                    if (!cred && credRegex.test(val)) cred = val;
+                    if (!role && roleRegex.test(val)) role = val;
+
+                    if ((!cred || !role) && val.startsWith('{')) {
+                        try {
+                            const parsed = JSON.parse(val);
+                            if (!cred) {
+                                if (parsed.cred) cred = parsed.cred;
+                                else if (parsed.token && credRegex.test(parsed.token)) cred = parsed.token;
+                            }
+                            if (!role) {
+                                if (parsed.role) role = parsed.role;
+                                else if (parsed.gameRole) role = parsed.gameRole;
+                            }
+                        } catch (e) { }
+                    }
+                }
+            } catch (e) { console.error(e); }
+        });
     }
 
     return { cred, role };
@@ -101,16 +96,39 @@ function showSyncPrompt() {
 
     document.body.appendChild(div);
 
+    // [수정] 안전한 메시지 전송
     document.getElementById('btn-sync-yes').addEventListener('click', async () => {
+        if (!chrome.runtime?.id) {
+            await showModal("연결 끊김", "확장 프로그램이 업데이트되었습니다.\n페이지를 새로고침 해주세요.", false);
+            return;
+        }
+
         const data = scanForAccountData();
-        chrome.runtime.sendMessage({ action: "syncAccount", storageData: data }, async (res) => {
-            if (res && res.code === "SUCCESS") {
-                await showModal("연동 완료!", "성공적으로 계정이 연동되었습니다.");
-                div.remove();
-            } else {
-                await showModal("연동 실패", (res ? res.msg : "응답 없음"), false);
-            }
-        });
+
+        try {
+            chrome.runtime.sendMessage({ action: "syncAccount", storageData: data }, async (res) => {
+                if (chrome.runtime.lastError) {
+                    await showModal("오류", "메시지 전송 실패: 페이지를 새로고침 하세요.", false);
+                    return;
+                }
+
+                if (res && res.code === "SUCCESS") {
+                    await showModal("연동 완료!", "성공적으로 계정이 연동되었습니다.");
+                    div.remove();
+                } else {
+                    const msg = res ? res.msg : "응답 없음";
+                    // 401 Unauthorized 에러 메시지 친절하게 변경
+                    if (msg.includes("401") || msg.includes("로그인")) {
+                        await showModal("인증 실패", "로그인 세션이 만료되었습니다.\n사이트 로그아웃 후 다시 로그인해주세요.", false);
+                    } else {
+                        await showModal("연동 실패", msg, false);
+                    }
+                }
+            });
+        } catch (e) {
+            console.error(e);
+            await showModal("오류", "확장 프로그램 연결이 끊겼습니다.\n페이지를 새로고침 해주세요.", false);
+        }
     });
 
     document.getElementById('btn-sync-no').addEventListener('click', () => {
@@ -145,11 +163,10 @@ function showModal(title, msg, isSuccess = true) {
 
         container.innerHTML = `
             <div style="font-size:16px; font-weight:700; color:${color}; margin-bottom:12px;">${title}</div>
-            <div style="font-size:14px; color:#F0F0F0; line-height:1.5; margin-bottom:24px;">${msg}</div>
+            <div style="font-size:14px; color:#F0F0F0; line-height:1.5; margin-bottom:24px; white-space:pre-line;">${msg}</div>
             <button id="modal-btn-confirm" style="
                 width: 100%; padding: 10px 0; border-radius: 6px; border: none;
-                background: ${color}; color: #1A1A1A; font-size: 13px; font-weight: 800;
-                cursor: pointer;
+                background: ${color}; color: #1A1A1A; font-size: 13px; font-weight: 800; cursor: pointer;
             ">확인</button>
         `;
 

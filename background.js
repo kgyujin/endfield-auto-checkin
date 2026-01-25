@@ -309,7 +309,11 @@ class CheckInController {
                 const cookies = await chrome.cookies.getAll({ domain: domain });
                 for (const cookie of cookies) {
                     const protocol = cookie.secure ? "https:" : "http:";
-                    const url = `${protocol}//${cookie.domain}${cookie.path}`;
+                    let domain = cookie.domain;
+                    if (domain.startsWith('.')) {
+                        domain = domain.substring(1);
+                    }
+                    const url = `${protocol}//${domain}${cookie.path}`;
                     await chrome.cookies.remove({ url: url, name: cookie.name, storeId: cookie.storeId });
                 }
             } catch (e) {

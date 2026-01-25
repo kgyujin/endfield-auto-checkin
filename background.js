@@ -132,10 +132,8 @@ class CheckInService {
         try {
             const cookies = await this.getAllCookies();
 
-            // 1. cred 찾기
-            // [수정: 중요] Chrome Cookie API로 찾은 값(HttpOnly 포함)을 1순위로 사용
-            // content.js에서 보낸 값(localStorage/document.cookie)은 2순위 백업으로 사용
-            let cred = this.findCredInCookies(cookies) || localStorageData?.cred;
+            // 1. cred 찾기 (로컬스토리지 우선 -> 쿠키)
+            let cred = localStorageData?.cred || this.findCredInCookies(cookies);
 
             if (!cred) {
                 // ZIP 파일 버전처럼 정밀 스캔에도 없으면 실패

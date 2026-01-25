@@ -18,54 +18,54 @@ function scanForAccountData() {
     let cred = null;
     let role = null;
 
-    // A. [우선순위 변경] Cookie 스캔 (HttpOnly가 아닌 것들, 가장 최신 상태일 확률 높음)
-    const cookies = document.cookie.split(';');
-    for (let c of cookies) {
-        const parts = c.trim().split('=');
-        if (parts.length < 2) continue;
-        const k = parts[0];
-        const v = parts.slice(1).join('=');
+    // A. Storage (Local & Session) 정밀 스캔
+    const storages = [localStorage, sessionStorage];
+    const credRegex = /^[A-Za-z0-9]{32}$/; // 32자리 영문+숫자
+    const roleRegex = /^\d+_\d+_\d+$/;     // 숫자_숫자_숫자
 
-        if (!cred && (k === 'cred' || k === 'sk_cred')) cred = v;
-        if (!role && (k === 'sk-game-role' || k === 'sk_game_role')) role = decodeURIComponent(v);
-    }
+    storages.forEach(store => {
+        try {
+            for (let i = 0; i < store.length; i++) {
+                const key = store.key(i);
+                const val = store.getItem(key);
 
-    // B. Storage (Local & Session) 정밀 스캔 (쿠키에 없을 때 백업용)
-    if (!cred || !role) {
-        const storages = [localStorage, sessionStorage];
-        const credRegex = /^[A-Za-z0-9]{32}$/; // 32자리 영문+숫자
-        const roleRegex = /^\d+_\d+_\d+$/;     // 숫자_숫자_숫자
+                if (!val) continue;
 
-        storages.forEach(store => {
-            try {
-                for (let i = 0; i < store.length; i++) {
-                    const key = store.key(i);
-                    const val = store.getItem(key);
+                if (!cred && (key === 'cred' || key === 'CRED' || key === 'sk_cred')) cred = val;
+                if (!role && (key === 'sk-game-role' || key === 'current_role_id')) role = val;
 
-                    if (!val) continue;
+                if (!cred && credRegex.test(val)) cred = val;
+                if (!role && roleRegex.test(val)) role = val;
 
-                    if (!cred && (key === 'cred' || key === 'CRED' || key === 'sk_cred')) cred = val;
-                    if (!role && (key === 'sk-game-role' || key === 'current_role_id')) role = val;
-
-                    if (!cred && credRegex.test(val)) cred = val;
-                    if (!role && roleRegex.test(val)) role = val;
-
-                    if ((!cred || !role) && val.startsWith('{')) {
-                        try {
-                            const parsed = JSON.parse(val);
-                            if (!cred) {
-                                if (parsed.cred) cred = parsed.cred;
-                                else if (parsed.token && credRegex.test(parsed.token)) cred = parsed.token;
-                            }
-                            if (!role) {
-                                if (parsed.role) role = parsed.role;
-                                else if (parsed.gameRole) role = parsed.gameRole;
-                            }
-                        } catch (e) { }
-                    }
+                if ((!cred || !role) && val.startsWith('{')) {
+                    try {
+                        const parsed = JSON.parse(val);
+                        if (!cred) {
+                            if (parsed.cred) cred = parsed.cred;
+                            else if (parsed.token && credRegex.test(parsed.token)) cred = parsed.token;
+                        }
+                        if (!role) {
+                            if (parsed.role) role = parsed.role;
+                            else if (parsed.gameRole) role = parsed.gameRole;
+                        }
+                    } catch (e) { }
                 }
-            } catch (e) { console.error(e); }
-        });
+            }
+        } catch (e) { console.error(e); }
+    });
+
+    // B. Cookie 스캔 (HttpOnly가 아닌 것들, 2차 백업)
+    if (!cred || !role) {
+        const cookies = document.cookie.split(';');
+        for (let c of cookies) {
+            const parts = c.trim().split('=');
+            if (parts.length < 2) continue;
+            const k = parts[0];
+            const v = parts.slice(1).join('=');
+
+            if (!cred && (k === 'cred' || k === 'sk_cred')) cred = v;
+            if (!role && (k === 'sk-game-role' || k === 'sk_game_role')) role = decodeURIComponent(v);
+        }
     }
 
     return { cred, role };

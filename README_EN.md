@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.1.4-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.1.4)
+[![Version](https://img.shields.io/badge/Version-1.2.0-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.2.0)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20%7C%20Edge%20%7C%20Whale-orange?style=flat-square)](https://chromewebstore.google.com/)
 
@@ -30,7 +30,7 @@ automatically performs the daily check-in for
 | Item | Description |
 |---|---|
 | Platform | Chromium-based browsers (Chrome, Edge, Whale, etc.) |
-| Version | 1.1.4 |
+| Version | 1.2.0 |
 | Requirement | User must be logged in to the SKPORT website |
 | Execution | Local browser automation |
 | External Network | None |
@@ -66,7 +66,7 @@ automatically performs the daily check-in for
 
 ---
 
-## Installation (Manual)
+## Installation
 
 1. Select **Code → Download ZIP** from this repository
 2. Extract the downloaded archive
@@ -82,20 +82,26 @@ automatically performs the daily check-in for
 2. The extension will automatically perform the daily check-in on browser startup
 3. Click the extension icon to check status or run immediately using `CHECK NOW`
 
----
+## Troubleshooting
 
-## Architecture (For Developers)
+> **⚠️ If "Failure" or the "X" badge persists**
 
-This project follows a layered architecture for maintainability and extensibility.
+Account synchronization may fail in the following situations:
+- Attempting to sync without being **logged in**
+- Persistent failure due to unknown errors even after attempting synchronization
 
-- **Controller**  
-  Controls overall workflow and scheduling
-- **Service**  
-  Business logic such as date calculation and execution checks
-- **Store**  
-  Local persistence using `chrome.storage`
-- **Runner**  
-  DOM interaction and window execution management
+**🌟 Solution**
+1. Click the extension icon → Click the **⚙️ Settings (Gear)** icon in the top right
+2. Click the **[Reset Data]** button to clear all stored data
+3. When the SKPORT site refreshes, **Log in again**
+4. Retry **Account Sync** following the popup instructions
+
+**If you encounter any issues, please try 'Reset Data' first.**
+
+## Disclaimer
+
+- This project was developed for the **developer's personal convenience**.
+- Maintenance and feature improvements will be provided within the developer's available technical scope and time.
 
 ---
 

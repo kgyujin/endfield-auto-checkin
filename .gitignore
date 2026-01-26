@@ -1,1 +1,10 @@
 ref/
+dev/
+*.py
+*.txt
+*.log
+node_modules/
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

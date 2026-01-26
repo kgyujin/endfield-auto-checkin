@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.1.4-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.1.4)
+[![Version](https://img.shields.io/badge/Version-1.2.0-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.2.0)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20%7C%20Edge%20%7C%20Whale-orange?style=flat-square)](https://chromewebstore.google.com/)
 
@@ -12,6 +12,15 @@
 <br/>
 
 [🇺🇸 English Version](./README_EN.md)
+
+<br/>
+
+### 현재 확장 프로그램은 검토 대기 중이므로 웹 스토어에서 설치할 수 없습니다.
+### 스토어 외의 설치 및 방법은 아래를 참고해주세요.
+
+<br/>
+
+---
 
 <br/>
 
@@ -30,7 +39,7 @@ Endfield Auto Check-in은
 | 항목 | 내용 |
 |---|---|
 | 플랫폼 | Chrome, Edge, Whale 등 Chromium 기반 브라우저 |
-| 버전 | 1.1.4 |
+| 버전 | 1.2.0 |
 | 동작 조건 | SKPORT 게임 사이트 로그인 상태 필요 |
 | 실행 방식 | 로컬 브라우저 내부 자동화 |
 | 외부 통신 | 없음 |
@@ -66,7 +75,7 @@ Endfield Auto Check-in은
 
 ---
 
-## Installation (Manual)
+## Installation
 
 1. 이 저장소에서 **Code → Download ZIP** 선택
 2. 압축 해제
@@ -81,23 +90,6 @@ Endfield Auto Check-in은
 1. SKPORT 엔드필드 출석 페이지에 **한 번 로그인**
 2. 이후 브라우저 실행 시 자동으로 출석 처리
 3. 확장 아이콘 클릭 시 상태 확인 또는 `CHECK NOW`로 즉시 실행 가능
-
----
-
-## Architecture (For Developers)
-
-본 프로젝트는 유지보수성과 확장성을 고려한 계층형 구조를 사용합니다.
-
-- **Controller**  
-  전체 흐름 제어 및 스케줄 관리
-- **Service**  
-  날짜 계산, 실행 조건 판단 등 비즈니스 로직
-- **Store**  
-  `chrome.storage` 기반 로컬 데이터 관리
-- **Runner**  
-  DOM 제어 및 윈도우 실행 관리
-
----
 
 ## License
 

@@ -1,38 +1,40 @@
 {
-  "manifest_version": 3,
-  "name": "명일방주: 엔드필드 자동 출석체크(Arknights: Endfield Auto Check-in)",
-  "version": "1.1.4",
-  "description": "Automated daily check-in for Arknights: Endfield",
-  "permissions": [
-    "alarms",
-    "storage",
-    "cookies"
-  ],
-  "host_permissions": [
-    "https://*.skport.com/*",
-    "https://*.gryphline.com/*"
-  ],
-  "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
-  },
-  "action": {
-    "default_popup": "popup.html",
-    "default_icon": "icon.png"
-  },
-  "background": {
-    "service_worker": "background.js"
-  },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://game.skport.com/endfield/sign-in*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_idle"
-    }
-  ]
+    "manifest_version": 3,
+    "name": "엔드필드 자동 출석체크",
+    "version": "1.2.0",
+    "description": "Automated daily check-in for Arknights: Endfield",
+    "permissions": [
+        "storage",
+        "alarms",
+        "cookies",
+        "activeTab"
+    ],
+    "host_permissions": [
+        "https://*.skport.com/*",
+        "https://*.gryphline.com/*"
+    ],
+    "background": {
+        "service_worker": "background.js"
+    },
+    "action": {
+        "default_popup": "popup.html",
+        "default_title": "Endfield Check-in"
+    },
+    "icons": {
+        "16": "icon.png",
+        "48": "icon.png",
+        "128": "icon.png"
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "https://*.skport.com/*",
+                "https://*.gryphline.com/*"
+            ],
+            "js": [
+                "content.js"
+            ],
+            "run_at": "document_idle"
+        }
+    ]
 }

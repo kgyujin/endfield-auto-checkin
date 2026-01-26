@@ -1,16 +1,36 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <title>Endfield Check-in</title>
     <link rel="stylesheet" href="popup.css">
     <style>
         /* 버튼 정렬을 위한 추가 스타일 */
-        .btn-group-col { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; }
-        .btn-danger { color: #FF3B30; font-size: 11px; padding: 4px 8px; background: none; border: none; cursor: pointer; opacity: 0.8; }
-        .btn-danger:hover { opacity: 1; text-decoration: underline; }
+        .btn-group-col {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-end;
+        }
+
+        .btn-danger {
+            color: #FF3B30;
+            font-size: 11px;
+            padding: 4px 8px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .btn-danger:hover {
+            opacity: 1;
+            text-decoration: underline;
+        }
     </style>
 </head>
+
 <body>
     <div class="app-container">
         <header>
@@ -19,8 +39,10 @@
             </div>
             <div class="header-controls">
                 <button id="btnSettings" class="icon-btn" title="설정 및 기록">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"
+                        xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
                     </svg>
                 </button>
                 <label class="switch">
@@ -38,7 +60,7 @@
             </div>
             <button id="runNowBtn" class="btn-primary full-width">CHECK NOW</button>
             <a href="https://game.skport.com/endfield/sign-in" target="_blank" class="site-link">출석 사이트 바로가기 ↗</a>
-            
+
             <!-- 실패 시에만 표시될 버그 제보 버튼 -->
             <button id="btnMainBugReport" class="btn-text" style="display: none; width: 100%; color: #FF3B30;">
                 ⚠️ 문제 해결이 안 되나요? 버그 제보하기
@@ -47,13 +69,15 @@
 
         <div id="settingsView" style="display: none;">
             <div class="section-title">계정 연동 상태</div>
-            
+
             <div class="sync-box">
                 <div id="userInfo" class="sync-info">정보 없음</div>
                 <div class="btn-group-col">
                     <button id="btnSync" class="btn-primary small">계정 연동 갱신</button>
                     <button id="btnUnlink" class="btn-danger">연동 해제</button>
-                    <button id="btnReset" class="btn-danger" style="color:#FF3B30; border:1px solid rgba(255, 59, 48, 0.3); border-radius:4px; margin-top:12px;">데이터 초기화<br>(오류 해결)</button>
+                    <button id="btnReset" class="btn-danger"
+                        style="color:#FF3B30; border:1px solid rgba(255, 59, 48, 0.3); border-radius:4px; margin-top:12px;">데이터
+                        초기화<br>(오류 해결)</button>
                 </div>
             </div>
 
@@ -85,12 +109,10 @@
             <div class="modal-message" style="text-align: left; font-size: 13px; color: #ccc;">
                 오류 로그와 환경 정보가 자동으로 첨부됩니다.
             </div>
-            
-            <!-- 이메일 수동 입력 -->
-            <input type="email" id="bugReportEmail" style="width: 100%; margin-top: 10px; box-sizing: border-box; background: #333; border: 1px solid #555; color: white; border-radius: 4px; padding: 8px; font-family: sans-serif;" placeholder="답변 받을 이메일 (필수)">
 
-            <textarea id="bugReportMsg" style="width: 100%; height: 80px; margin: 10px 0; box-sizing: border-box; background: #333; border: 1px solid #555; color: white; border-radius: 4px; padding: 8px; font-family: sans-serif; resize: none;" placeholder="추가 내용 (예: '로그인 후 버튼이 안 눌려요')"></textarea>
-            
+            <!-- 이메일 수동 입력 -->
+
+
             <div class="modal-buttons">
                 <button id="btnBugCancel" class="modal-btn secondary">취소</button>
                 <button id="btnBugSend" class="modal-btn primary">보내기</button>
@@ -100,4 +122,5 @@
 
     <script src="popup.js"></script>
 </body>
+
 </html>

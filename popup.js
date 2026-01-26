@@ -51,15 +51,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         btn.innerText = "전송 중...";
         btn.disabled = true;
 
-        const userMsg = document.getElementById('bugReportMsg').value;
-        await processBugReport(userMsg);
+        await processBugReport();
 
         btn.innerText = originalText;
         btn.disabled = false;
         document.getElementById('bugReportModal').style.display = 'none';
-
-        // 입력 초기화
-        document.getElementById('bugReportMsg').value = '';
     });
 
     // 토글 스위치
@@ -180,16 +176,9 @@ function handleManualRun() {
 
 async function handleBugReport() {
     document.getElementById('bugReportModal').style.display = 'flex';
-
-    // 이메일 입력창 초기화 (또는 기존 값 유지? 보통은 유지하거나 공란)
-    // 사용자가 직접 입력하게 유도하므로 포커스를 이메일로
-    const emailInput = document.getElementById('bugReportEmail');
-    if (!emailInput.value) emailInput.value = "";
-
-    emailInput.focus();
 }
 
-async function processBugReport(userMessage) {
+async function processBugReport() {
     try {
         // 1. 정보 수집
         const manifest = chrome.runtime.getManifest();
@@ -206,17 +195,18 @@ async function processBugReport(userMessage) {
 
         const maskedData = JSON.stringify(data, (key, value) => {
             if (key === 'accountInfo' && value) {
-                return { ...value, cred: value.cred ? value.cred.substring(0, 5) + "***" : null };
+                // cred 마스킹, role(ID/Server) 정보 제외
+                return {
+                    ...value,
+                    cred: value.cred ? value.cred.substring(0, 5) + "***" : null,
+                    role: undefined
+                };
             }
             return value;
         }, 2);
 
-        // 이메일: 사용자가 입력한 값
-        let userEmail = document.getElementById('bugReportEmail').value.trim();
-        if (!userEmail) userEmail = "Not provided";
-
         // 3. 구글 폼 연결
-        // [설정] 버그 제보를 받을 구글 폼 주소를 입력하세요. (entry.xxx 미리 채우기 사용 가능하나 복잡하므로 붙여넣기 유도)
+        // [설정] 버그 제보를 받을 구글 폼 주소를 입력하세요.
         const GOOGLE_FORM_URL = "https://forms.gle/57Vafx5ffwSZ4J4NA";
 
         // 한국 시간 (KST)
@@ -224,12 +214,8 @@ async function processBugReport(userMessage) {
 
         // 2. 리포트 포맷 정리 (텍스트 형식, 대괄호 사용)
         const reportBody = `
-[사용자 제보]
-User Message:
-${userMessage || "(내용 없음)"}
-
+[버그 리포트]
 Date (KST): ${kstTime}
-Email: ${userEmail}
 
 ----------------------------------------
 

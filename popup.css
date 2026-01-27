@@ -217,31 +217,48 @@ input:checked+.slider:before {
     text-decoration: underline;
 }
 
-/* 버튼 그룹 (연동/해제) */
-.btn-group-col {
+/* 버튼 그룹 (Row) */
+.btn-group-row {
     display: flex;
-    flex-direction: column;
-    gap: 4px;
-    align-items: flex-end;
-    flex-shrink: 0;
-    /* [중요] 텍스트가 길어져도 버튼 영역 줄어들지 않음 */
-    margin-left: 12px;
-    /* 텍스트와 간격 확보 */
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    width: 100%;
+    justify-content: flex-end;
+    /* Right align buttons */
+    margin-top: 4px;
 }
 
 .btn-danger {
     color: #FF3B30;
     font-size: 11px;
-    padding: 4px 8px;
+    padding: 6px 10px;
     background: none;
     border: none;
     cursor: pointer;
     opacity: 0.8;
 }
 
+.btn-danger-outline {
+    color: #FF3B30;
+    font-size: 11px;
+    padding: 5px 8px;
+    background: rgba(255, 59, 48, 0.05);
+    border: 1px solid rgba(255, 59, 48, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-danger-outline:hover {
+    background: rgba(255, 59, 48, 0.15);
+    border-color: #FF3B30;
+}
+
 .btn-danger:hover {
     opacity: 1;
-    text-decoration: underline;
+    background: rgba(255, 59, 48, 0.1);
+    border-radius: 6px;
 }
 
 /* Settings & Logs */
@@ -256,10 +273,12 @@ input:checked+.slider:before {
 .sync-box {
     background: var(--glass-bg);
     border-radius: 8px;
-    padding: 12px;
+    padding: 16px;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column;
+    /* Stack vertically */
+    gap: 12px;
+    /* Space between text and buttons */
     margin-bottom: 15px;
     border: 1px solid var(--glass-border);
 }

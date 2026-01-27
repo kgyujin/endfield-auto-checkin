@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.2.3-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.2.3)
+[![Version](https://img.shields.io/badge/Version-1.2.4-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.2.4)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20%7C%20Edge%20%7C%20Whale-orange?style=flat-square)](https://chromewebstore.google.com/)
 
@@ -32,7 +32,7 @@ automatically performs the daily check-in for
 | Feature | Description |
 | :--- | :--- |
 | **Platform** | Chromium-based browsers (Chrome, Edge, Whale, etc.) |
-| **Version** | 1.2.3 |
+| **Version** | 1.2.4 |
 | **Condition** | Must be logged in to SKPORT website |
 | **Execution** | Local background automation |
 | **Network** | No external server communication |

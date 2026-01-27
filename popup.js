@@ -1,7 +1,6 @@
 const storage = chrome.storage.local;
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. 데이터 로드 및 UI 초기화
     const data = await storage.get(['lastStatus', 'lastCheckDate', 'lastCheckTime', 'accountInfo', 'checkInLogs', 'isRunning', 'discordConfig']);
 
     renderStatus(data);
@@ -9,13 +8,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAccountInfo(data.accountInfo);
     renderDiscordConfig(data.discordConfig);
 
-    // 2. 이벤트 리스너
     document.getElementById('btnSettings').addEventListener('click', () => {
         const settingsView = document.getElementById('settingsView');
         const mainView = document.getElementById('mainView');
         const discordView = document.getElementById('discordView');
-
-        // 토글: 설정 화면이 이미 열려있으면 메인으로, 아니면 설정으로
         if (settingsView.style.display === 'flex') {
             mainView.style.display = 'flex';
             settingsView.style.display = 'none';
@@ -32,7 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const mainView = document.getElementById('mainView');
         const discordView = document.getElementById('discordView');
 
-        // 토글: 디스코드 화면이 이미 열려있으면 메인으로, 아니면 디스코드로
         if (discordView.style.display === 'flex') {
             mainView.style.display = 'flex';
             settingsView.style.display = 'none';
@@ -56,22 +51,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('mainView').style.display = 'flex';
     });
 
-    // 계정 연동 버튼
     document.getElementById('btnSync').addEventListener('click', handleSyncClick);
 
-    // 데이터 초기화 버튼
     document.getElementById('btnReset').addEventListener('click', handleReset);
 
-    // 수동 실행 버튼
     document.getElementById('runNowBtn').addEventListener('click', handleManualRun);
-
-
-
-    // Discord event listeners
     document.getElementById('btnSaveWebhook').addEventListener('click', handleSaveWebhook);
     document.getElementById('btnTestWebhook').addEventListener('click', handleTestWebhook);
 
-    // Webhook help button
     document.getElementById('btnWebhookHelp').addEventListener('click', async () => {
         await Modal.alert(
             "1. 디스코드 서버 → 서버 설정 → 연동\n2. 웹후크 → 새 웹후크\n3. 웹후크 URL 복사 → 위에 붙여넣기",
@@ -79,9 +66,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         );
     });
 
-    // 연동 해제 버튼 리스너는 renderAccountInfo에서 동적으로 등록/제거함
-
-    // 3. 상태 변화 감지
     chrome.storage.onChanged.addListener((changes) => {
         storage.get(null, (newData) => {
             renderStatus(newData);
@@ -92,8 +76,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
-
-// --- Modal Class ---
 class Modal {
     static init() {
         this.overlay = document.getElementById('customModal');
@@ -145,8 +127,6 @@ class Modal {
 }
 
 Modal.init();
-
-// --- 핸들러 함수 ---
 
 async function handleSyncClick() {
     const btn = document.getElementById('btnSync');
@@ -208,13 +188,10 @@ async function handleReset() {
     });
 }
 
-// --- 렌더링 함수 ---
-
 function renderStatus(data) {
     const statusEl = document.getElementById('statusDisplay');
     const timeEl = document.getElementById('lastRunDisplay');
 
-    // Always show settings/run buttons
     document.getElementById('btnSettings').style.display = '';
     document.getElementById('runNowBtn').style.display = '';
 
@@ -260,11 +237,9 @@ function renderAccountInfo(info) {
     const btnSync = document.getElementById('btnSync');
     const btnUnlink = document.getElementById('btnUnlink');
 
-    // 기존 이벤트 리스너 제거가 어려우므로, 요소를 복제해서 교체하는 방식 사용
     const newBtnUnlink = btnUnlink.cloneNode(true);
     btnUnlink.parentNode.replaceChild(newBtnUnlink, btnUnlink);
 
-    // 새 리스너 등록
     newBtnUnlink.addEventListener('click', async () => {
         const confirmed = await Modal.confirm("정말 계정 연동을 해제하시겠습니까?\n자동 출석이 중단됩니다.");
         if (!confirmed) return;
@@ -280,14 +255,17 @@ function renderAccountInfo(info) {
 
     if (info && info.cred && info.role) {
         let accountInfoText = "";
-        if (typeof info.role === 'string') {
+
+        if (info.uid && info.uid !== "Linked") {
+            accountInfoText = `<div style="margin-top:4px; font-size:12px; color:#D4D94A; font-weight:500;">UID: ${info.uid}</div>`;
+        }
+        else if (typeof info.role === 'string') {
             const parts = info.role.split('_');
             if (parts.length >= 3) {
                 const roleId = parts[1];
-                const serverId = parts[2];
-                accountInfoText = `<div style="margin-top:4px; font-size:12px; color:#D4D94A; font-weight:500;">계정 ID: ${roleId}</div><div style="font-size:11px; color:#999;">서버: ${serverId}</div>`;
+                accountInfoText = `<div style="margin-top:4px; font-size:12px; color:#D4D94A; font-weight:500;">UID: ${roleId}</div>`;
             } else {
-                accountInfoText = `<div style="margin-top:4px; font-size:12px; color:#D4D94A; font-weight:500;">계정 ID: ${info.role}</div>`;
+                accountInfoText = `<div style="margin-top:4px; font-size:12px; color:#D4D94A; font-weight:500;">UID: ${info.role}</div>`;
             }
         }
 
@@ -301,13 +279,15 @@ function renderAccountInfo(info) {
     }
 }
 
-// --- Discord 핸들러 함수 ---
-
 async function handleSaveWebhook() {
     const webhookUrl = document.getElementById('webhookUrl').value.trim();
 
     if (!webhookUrl) {
-        await Modal.alert("웹훅 URL을 입력해주세요.", "오류");
+        // Clear configuration to disable
+        const config = { webhookUrl: "" };
+        await storage.set({ discordConfig: config });
+        await Modal.alert("디스코드 연동이 비활성화되었습니다.", "알림");
+        renderDiscordConfig(config);
         return;
     }
 
@@ -326,8 +306,9 @@ async function handleSaveWebhook() {
     renderDiscordConfig(config);
 }
 
+
+
 async function handleTestWebhook() {
-    // 테스트 메시지는 알림 활성화 여부 및 출석 상태와 무관하게 전송
     const webhookUrl = document.getElementById('webhookUrl').value.trim();
 
     if (!webhookUrl) {
@@ -335,15 +316,11 @@ async function handleTestWebhook() {
         return;
     }
 
-    // 토글 상태 확인
-    const data = await storage.get(['discordConfig']);
+    const data = await storage.get(['discordConfig', 'accountInfo']);
     const config = data.discordConfig || {};
 
-    // Toggle check removed - always allow test if URL exists
-
-    // 테스트 유형 선택
     const testType = await showTestTypeModal();
-    if (!testType) return; // 취소한 경우
+    if (!testType) return;
 
     const btn = document.getElementById('btnTestWebhook');
     const originalText = btn.innerText;
@@ -351,7 +328,7 @@ async function handleTestWebhook() {
     btn.disabled = true;
 
     try {
-        const testEmbed = createTestEmbed(testType);
+        const testEmbed = createTestEmbed(testType, data.accountInfo);
 
         const response = await fetch(webhookUrl, {
             method: 'POST',
@@ -378,10 +355,9 @@ async function handleTestWebhook() {
 
 function showTestTypeModal() {
     return new Promise((resolve) => {
-        // Create a temporary modal element
         const modalOverlay = document.createElement('div');
-        modalOverlay.className = 'modal-overlay active'; // Use the same CSS class for styling
-        modalOverlay.style.zIndex = '10000'; // Ensure it's on top
+        modalOverlay.className = 'modal-overlay active';
+        modalOverlay.style.zIndex = '10000';
 
         modalOverlay.innerHTML = `
             <div class="modal-container">
@@ -411,9 +387,8 @@ function showTestTypeModal() {
     });
 }
 
-function createTestEmbed(type) {
+function createTestEmbed(type, accountInfo) {
     const now = new Date();
-    // YYYY-MM-DD HH:MM 형식 (KST)
     const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
     const kstDate = new Date(utc + (3600000 * 9));
 
@@ -424,13 +399,16 @@ function createTestEmbed(type) {
     const minutes = String(kstDate.getMinutes()).padStart(2, '0');
     const dateTimeStr = `${year}-${month}-${day} ${hours}:${minutes}`;
 
-    // Random accumulated days (1 ~ 30)
     const randomDays = Math.floor(Math.random() * 30) + 1;
+
+    const footerText = (accountInfo && accountInfo.uid)
+        ? `UID: ${accountInfo.uid}`
+        : "Endfield Auto Check-in";
 
     if (type === 'SUCCESS') {
         return {
             title: "[테스트] 🎉 엔드필드 출석 체크 완료!",
-            color: 13883715, // #d3d943
+            color: 13883715,
             fields: [
                 { name: "📅 일시", value: dateTimeStr, inline: false },
                 { name: "📊 누적 출석", value: `${randomDays}일`, inline: true },
@@ -439,29 +417,29 @@ function createTestEmbed(type) {
             thumbnail: {
                 url: "https://img.icons8.com/color/96/gift--v1.png"
             },
-            footer: { text: "Endfield Auto Check-in" },
+            footer: { text: footerText },
             timestamp: now.toISOString()
         };
     } else if (type === 'ALREADY_DONE') {
         return {
             title: "[테스트] ✅ 출석 체크 이미 완료됨",
-            color: 3447003, // Blue
+            color: 3447003,
             fields: [
                 { name: "📅 일시", value: dateTimeStr, inline: false },
                 { name: "ℹ️ 상태", value: "오늘 출석 체크가 이미 완료되었습니다.", inline: false }
             ],
-            footer: { text: "Endfield Auto Check-in" },
+            footer: { text: footerText },
             timestamp: now.toISOString()
         };
-    } else { // FAIL
+    } else {
         return {
             title: "[테스트] ⚠️ 엔드필드 출석 체크 실패",
-            color: 16711680, // Red
+            color: 16711680,
             fields: [
                 { name: "📅 일시", value: dateTimeStr, inline: false },
                 { name: "❌ 오류 내용", value: "테스트 오류 메시지입니다.", inline: false }
             ],
-            footer: { text: "Endfield Auto Check-in" },
+            footer: { text: footerText },
             timestamp: now.toISOString()
         };
     }
@@ -471,7 +449,6 @@ function renderDiscordConfig(config) {
     const webhookUrlInput = document.getElementById('webhookUrl');
     const statusDiv = document.getElementById('discordStatus');
 
-    // 토글 상태는 config가 있으면 항상 설정 (URL 여부와 무관)
     if (config) {
         webhookUrlInput.value = config.webhookUrl || '';
 
@@ -480,10 +457,14 @@ function renderDiscordConfig(config) {
             const color = '#34C759';
             statusDiv.innerHTML = `<span style="color:${color}">●</span> ${status}<br><span style="font-size:10px; color:#888;">최근 수정: ${config.lastSync || '-'}</span>`;
         } else {
-            statusDiv.innerHTML = '웹훅 URL을 설정해주세요';
+            const status = '비활성화됨';
+            const color = '#888'; // Grey
+            statusDiv.innerHTML = `<span style="color:${color}">●</span> ${status}`;
         }
     } else {
         webhookUrlInput.value = '';
-        statusDiv.innerHTML = '설정되지 않음';
+        const status = '비활성화됨';
+        const color = '#888';
+        statusDiv.innerHTML = `<span style="color:${color}">●</span> ${status}`;
     }
 }

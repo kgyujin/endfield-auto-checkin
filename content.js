@@ -1,10 +1,8 @@
-// 1. 페이지 로드 시 자동 팝업 (기존 유지)
 chrome.storage.local.get(['accountInfo'], (data) => {
     if (data.accountInfo && data.accountInfo.cred) return;
     showSyncPrompt();
 });
 
-// popup.js의 요청을 듣는 리스너
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "getLocalStorage") {
         const data = scanForAccountData();
@@ -12,15 +10,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 });
 
-// 정밀 데이터 탐색 함수
 function scanForAccountData() {
     let cred = null;
     let role = null;
-
-    // A. Storage (Local & Session) 정밀 스캔
     const storages = [localStorage, sessionStorage];
-    const credRegex = /^[A-Za-z0-9]{32}$/; // 32자리 영문+숫자
-    const roleRegex = /^\d+_\d+_\d+$/;     // 숫자_숫자_숫자
+    const credRegex = /^[A-Za-z0-9]{32}$/;
+    const roleRegex = /^\d+_\d+_\d+$/;
 
     storages.forEach(store => {
         try {
@@ -53,7 +48,6 @@ function scanForAccountData() {
         } catch (e) { console.error(e); }
     });
 
-    // B. Cookie 스캔 (HttpOnly가 아닌 것들, 2차 백업)
     if (!cred || !role) {
         const cookies = document.cookie.split(';');
         for (let c of cookies) {
@@ -70,7 +64,6 @@ function scanForAccountData() {
     return { cred, role };
 }
 
-// 화면 좌측 하단 팝업 생성
 function showSyncPrompt() {
     if (document.getElementById('endfield-sync-prompt')) return;
 
@@ -95,7 +88,6 @@ function showSyncPrompt() {
 
     document.body.appendChild(div);
 
-    // 안전한 메시지 전송
     document.getElementById('btn-sync-yes').addEventListener('click', async () => {
         if (!chrome.runtime?.id) {
             await showModal("연결 끊김", "확장 프로그램이 업데이트되었습니다.\n페이지를 새로고침 해주세요.", false);
@@ -116,7 +108,6 @@ function showSyncPrompt() {
                     div.remove();
                 } else {
                     const msg = res ? res.msg : "응답 없음";
-                    // 401 Unauthorized 에러 메시지 친절하게 변경
                     if (msg.includes("401") || msg.includes("로그인")) {
                         await showModal("인증 실패", "로그인 세션이 만료되었습니다.\n사이트 로그아웃 후 다시 로그인해주세요.", false);
                     } else {
@@ -172,7 +163,6 @@ function showModal(title, msg, isSuccess = true) {
         overlay.appendChild(container);
         document.body.appendChild(overlay);
 
-        // Animation start
         requestAnimationFrame(() => {
             overlay.style.opacity = '1';
             container.style.transform = 'scale(1)';

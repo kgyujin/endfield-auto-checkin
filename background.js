@@ -135,7 +135,11 @@ class CheckInService {
 
             if (data.code === 0 && data.data?.list?.[0]?.bindingList?.[0]?.roles?.[0]) {
                 const roleData = data.data.list[0].bindingList[0].roles[0];
-                return `3_${roleData.roleId}_${roleData.serverId}`;
+                return {
+                    roleValue: `3_${roleData.roleId}_${roleData.serverId}`,
+                    roleId: roleData.roleId,
+                    server: roleData.serverId
+                };
             }
             return null;
         } catch (e) {
@@ -169,20 +173,15 @@ class CheckInService {
                 cred = decodeURIComponent(cred).replace(/^"|"$/g, '');
             }
 
-            let role = await this.fetchGameRole(cred);
-
-            if (!role && localStorageData?.role) {
-                role = localStorageData.role;
-            }
-
-            if (!role) {
-                console.warn("캐릭터 정보(Role)를 찾지 못했습니다. (연동은 진행)");
+            const roleData = await this.fetchGameRole(cred);
+            if (!roleData) {
+                return { code: "FAIL", msg: "캐릭터 정보(UID)를 찾을 수 없습니다.\n게임에 캐릭터가 생성되어 있는지 확인해주세요." };
             }
 
             const accountInfo = {
-                uid: "Linked",
+                uid: roleData.roleId,
                 cred: cred,
-                role: role || "",
+                role: roleData.roleValue,
                 cookies: cookies,
                 lastSync: new Date().toLocaleString('ko-KR')
             };
@@ -203,11 +202,13 @@ class CheckInService {
             await this.refreshSession(account.cred);
 
             let role = account.role;
-            if (!role) {
-                role = await this.fetchGameRole(account.cred);
-                if (role) {
-                    account.role = role;
+            if (!role || !account.uid) {
+                const roleData = await this.fetchGameRole(account.cred);
+                if (roleData) {
+                    account.role = roleData.roleValue;
+                    account.uid = roleData.roleId;
                     await this.store.saveAccount(account);
+                    role = account.role;
                 }
             }
 
@@ -219,7 +220,6 @@ class CheckInService {
             const commonHeaders = await this.getHeaders(account.cred, null);
             const headers = { ...commonHeaders, "sk-game-role": role };
 
-            // 1. Check Status
             const checkRes = await fetch(url, { method: "GET", headers: headers });
             const checkData = await checkRes.json();
 
@@ -227,7 +227,6 @@ class CheckInService {
                 return { code: "ALREADY_DONE", msg: "이미 완료됨", rawData: checkData };
             }
 
-            // 2. Post Attendance
             const postRes = await fetch(url, {
                 method: "POST",
                 headers: { ...headers, "content-type": "application/json" },
@@ -263,7 +262,7 @@ class DiscordWebhookService {
                 return { code: "ALREADY_SENT", msg: "Already sent today" };
             }
 
-            const embed = this.formatAttendanceEmbed(attendanceData, serverDate);
+            const embed = await this.formatAttendanceEmbed(attendanceData, serverDate);
             const response = await fetch(config.webhookUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -293,13 +292,18 @@ class DiscordWebhookService {
             }
 
             const now = new Date();
-            const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+            const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 9));
             const dateStr = kstTime.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' });
             const timeStr = kstTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
 
+            const account = await this.store.getAccount();
+            const footerText = (account && account.uid)
+                ? `${account.uid}`
+                : "Endfield Auto Check-in";
+
             const embed = {
                 title: "⚠️ 엔드필드 출석 체크 실패",
-                color: 16711680, // #FF0000 (red)
+                color: 16711680,
                 fields: [
                     {
                         name: "📅 날짜",
@@ -318,7 +322,7 @@ class DiscordWebhookService {
                     }
                 ],
                 footer: {
-                    text: "Endfield Auto Check-in"
+                    text: footerText
                 },
                 timestamp: now.toISOString()
             };
@@ -341,14 +345,12 @@ class DiscordWebhookService {
             }
 
             const now = new Date();
-            // Calculate serverDate locally to match
-            const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+            const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 9));
             const serverDate = kstTime.toISOString().split('T')[0];
 
-            // Use shared format logic, overriding title and color
-            const embed = this.formatAttendanceEmbed(result, serverDate, {
+            const embed = await this.formatAttendanceEmbed(result, serverDate, {
                 title: "✅ 출석 체크 이미 완료됨",
-                color: 3447003 // Blue
+                color: 3447003
             });
 
             await fetch(config.webhookUrl, {
@@ -363,10 +365,9 @@ class DiscordWebhookService {
         }
     }
 
-    formatAttendanceEmbed(data, serverDate, options = {}) {
+    async formatAttendanceEmbed(data, serverDate, options = {}) {
         const now = new Date();
-        const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
-        // YYYY-MM-DD HH:MM 형식으로 포맷
+        const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 9));
         const year = kstTime.getFullYear();
         const month = String(kstTime.getMonth() + 1).padStart(2, '0');
         const day = String(kstTime.getDate()).padStart(2, '0');
@@ -374,9 +375,13 @@ class DiscordWebhookService {
         const minutes = String(kstTime.getMinutes()).padStart(2, '0');
         const dateTimeStr = `${year}-${month}-${day} ${hours}:${minutes}`;
 
-        // Default to SUCCESS style if no options provided
+        const account = await this.store.getAccount();
+        const footerText = (account && account.uid)
+            ? `${account.uid}`
+            : "Endfield Auto Check-in";
+
         const title = options.title || "🎉 엔드필드 출석 체크 완료!";
-        const color = options.color || 13883715; // Default yellow-green
+        const color = options.color || 13883715;
 
         const embed = {
             title: title,
@@ -389,42 +394,34 @@ class DiscordWebhookService {
                 }
             ],
             footer: {
-                text: "Endfield Auto Check-in"
+                text: footerText
             },
             timestamp: now.toISOString()
         };
 
-        // Extract attendance data from API response
         if (data && data.rawData && data.rawData.data) {
             const apiData = data.rawData.data;
             let rewardName = "";
             let rewardCount = "";
             let rewardIcon = "";
 
-            // --- Logic adapted from ref/main.gs ---
             if (apiData.calendar) {
-                // The calendar array contains objects like { day: 1, awardId: "...", done: true/false }
-                // We want the latest 'done' item.
                 const doneItems = apiData.calendar.filter(item => item.done === true);
 
                 if (doneItems.length > 0) {
-                    const latestReward = doneItems[doneItems.length - 1]; // Last completed item
+                    const latestReward = doneItems[doneItems.length - 1];
 
-                    // The reward details are in a separate map: resourceInfoMap
                     if (apiData.resourceInfoMap && latestReward.awardId) {
                         const info = apiData.resourceInfoMap[latestReward.awardId];
                         if (info) {
-                            // "name": "Item Name | Extra info" -> split by pipe
                             rewardName = info.name ? info.name.split('|')[0] : "알 수 없는 보상";
                             rewardCount = info.count;
                             rewardIcon = info.icon;
                         }
                     }
 
-                    // Also try to get signCount strictly from calendar length
                     const calculatedSignCount = doneItems.length;
 
-                    // Cumulative attendance days
                     embed.fields.push({
                         name: "📊 누적 출석",
                         value: `${calculatedSignCount}일`,
@@ -432,7 +429,6 @@ class DiscordWebhookService {
                     });
                 }
             }
-            // Fallback: If calendar is missing (e.g. POST response might be different?), try other fields
             else {
                 const signCount = apiData.signCount || apiData.sign_count || apiData.totalSignCount || apiData.currentSignCount;
                 if (signCount !== undefined) {
@@ -534,7 +530,7 @@ class CheckInController {
     getNextRunTime() {
         const now = new Date();
         const nextRun = new Date(now);
-        nextRun.setHours(1, 5, 0, 0); // 01:05 AM
+        nextRun.setHours(1, 5, 0, 0);
 
         if (now >= nextRun) {
             nextRun.setDate(nextRun.getDate() + 1);
@@ -614,7 +610,6 @@ class CheckInController {
             if (result.code === "SUCCESS") {
                 await this.discordService.sendAttendanceNotification(result, serverToday);
             } else if (result.code === "ALREADY_DONE" && isManual) {
-                // 수동 실행일 때만 '이미 완료됨' 알림 전송 (자동 실행 시 스팸 방지)
                 await this.discordService.sendAlreadyDoneNotification(result);
             }
         } else {

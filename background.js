@@ -20,7 +20,7 @@ class AccountStore {
 
     async saveAccount(info) { await this.set('accountInfo', info); }
     async getAccount() { return await this.get('accountInfo'); }
-    async isAutoRunActive() { return (await this.get('isGlobalActive')) !== false; }
+    async isAutoRunActive() { return true; }
 
     async saveResult(status, date, time) {
         const uiStatus = (status === "ALREADY_DONE") ? "SUCCESS" : status;
@@ -61,6 +61,20 @@ class AccountStore {
     async markDiscordSent(serverDate) {
         await this.set('lastDiscordSentDate', serverDate);
     }
+
+    async updateCredential(newCred, newCookies) {
+        const info = await this.getAccount();
+        if (info) {
+            info.cred = newCred;
+            if (newCookies) {
+                info.cookies = newCookies;
+            }
+            info.lastSync = new Date().toLocaleString('ko-KR');
+            await this.saveAccount(info);
+            return true;
+        }
+        return false;
+    }
 }
 
 class CheckInService {
@@ -76,13 +90,12 @@ class CheckInService {
         const headers = {
             "accept": "application/json, text/plain, */*",
             "accept-encoding": "gzip, deflate, br, zstd",
-            "accept-language": "en",
+            "accept-language": "ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7",
             "origin": "https://game.skport.com",
             "referer": "https://game.skport.com/",
-            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "platform": "3",
-            "vname": "1.0.0",
-            "sk-language": "en"
+            "sk-language": "ko"
         };
 
         if (cred) headers["cred"] = cred;
@@ -131,6 +144,18 @@ class CheckInService {
         }
     }
 
+    async refreshSession(cred) {
+        try {
+            const url = "https://game.skport.com/endfield/sign-in";
+            await fetch(url, {
+                method: "GET",
+                headers: await this.getHeaders(cred, null)
+            });
+        } catch (e) {
+            // Ignore errors for keep-alive
+        }
+    }
+
     async syncAccountData(localStorageData) {
         try {
             const cookies = await this.getAllCookies();
@@ -174,6 +199,8 @@ class CheckInService {
         try {
             const account = await this.store.getAccount();
             if (!account || !account.cred) return { code: "NOT_LOGGED_IN", msg: "계정 연동 필요" };
+
+            await this.refreshSession(account.cred);
 
             let role = account.role;
             if (!role) {
@@ -227,7 +254,7 @@ class DiscordWebhookService {
         try {
             const config = await this.store.getDiscordConfig();
 
-            if (!config || !config.enabled || !config.webhookUrl) {
+            if (!config || !config.webhookUrl) {
                 return { code: "DISABLED", msg: "Discord notifications disabled" };
             }
 
@@ -261,7 +288,7 @@ class DiscordWebhookService {
     async sendErrorNotification(errorMsg) {
         try {
             const config = await this.store.getDiscordConfig();
-            if (!config || !config.enabled || !config.webhookUrl) {
+            if (!config || !config.webhookUrl) {
                 return;
             }
 
@@ -306,44 +333,23 @@ class DiscordWebhookService {
         }
     }
 
-    async sendAlreadyDoneNotification() {
+    async sendAlreadyDoneNotification(result) {
         try {
             const config = await this.store.getDiscordConfig();
-            if (!config || !config.enabled || !config.webhookUrl) {
+            if (!config || !config.webhookUrl) {
                 return;
             }
 
             const now = new Date();
+            // Calculate serverDate locally to match
             const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
+            const serverDate = kstTime.toISOString().split('T')[0];
 
-            // YYYY-MM-DD HH:MM 형식
-            const year = kstTime.getFullYear();
-            const month = String(kstTime.getMonth() + 1).padStart(2, '0');
-            const day = String(kstTime.getDate()).padStart(2, '0');
-            const hours = String(kstTime.getHours()).padStart(2, '0');
-            const minutes = String(kstTime.getMinutes()).padStart(2, '0');
-            const dateTimeStr = `${year}-${month}-${day} ${hours}:${minutes}`;
-
-            const embed = {
+            // Use shared format logic, overriding title and color
+            const embed = this.formatAttendanceEmbed(result, serverDate, {
                 title: "✅ 출석 체크 이미 완료됨",
-                color: 3447003, // Blue color
-                fields: [
-                    {
-                        name: "📅 일시",
-                        value: dateTimeStr,
-                        inline: false
-                    },
-                    {
-                        name: "ℹ️ 상태",
-                        value: "오늘 출석 체크가 이미 완료되었습니다.",
-                        inline: false
-                    }
-                ],
-                footer: {
-                    text: "Endfield Auto Check-in"
-                },
-                timestamp: now.toISOString()
-            };
+                color: 3447003 // Blue
+            });
 
             await fetch(config.webhookUrl, {
                 method: 'POST',
@@ -357,7 +363,7 @@ class DiscordWebhookService {
         }
     }
 
-    formatAttendanceEmbed(data, serverDate) {
+    formatAttendanceEmbed(data, serverDate, options = {}) {
         const now = new Date();
         const kstTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000) + (3600000 * 8));
         // YYYY-MM-DD HH:MM 형식으로 포맷
@@ -368,9 +374,13 @@ class DiscordWebhookService {
         const minutes = String(kstTime.getMinutes()).padStart(2, '0');
         const dateTimeStr = `${year}-${month}-${day} ${hours}:${minutes}`;
 
+        // Default to SUCCESS style if no options provided
+        const title = options.title || "🎉 엔드필드 출석 체크 완료!";
+        const color = options.color || 13883715; // Default yellow-green
+
         const embed = {
-            title: "🎉 엔드필드 출석 체크 완료!",
-            color: 13883715, // #d3d943 (yellow-green)
+            title: title,
+            color: color,
             fields: [
                 {
                     name: "📅 일시",
@@ -387,22 +397,64 @@ class DiscordWebhookService {
         // Extract attendance data from API response
         if (data && data.rawData && data.rawData.data) {
             const apiData = data.rawData.data;
+            let rewardName = "";
+            let rewardCount = "";
+            let rewardIcon = "";
 
-            // Cumulative attendance days
-            if (apiData.signCount !== undefined) {
-                embed.fields.push({
-                    name: "📊 누적 출석",
-                    value: `${apiData.signCount}일`,
-                    inline: true
-                });
+            // --- Logic adapted from ref/main.gs ---
+            if (apiData.calendar) {
+                // The calendar array contains objects like { day: 1, awardId: "...", done: true/false }
+                // We want the latest 'done' item.
+                const doneItems = apiData.calendar.filter(item => item.done === true);
+
+                if (doneItems.length > 0) {
+                    const latestReward = doneItems[doneItems.length - 1]; // Last completed item
+
+                    // The reward details are in a separate map: resourceInfoMap
+                    if (apiData.resourceInfoMap && latestReward.awardId) {
+                        const info = apiData.resourceInfoMap[latestReward.awardId];
+                        if (info) {
+                            // "name": "Item Name | Extra info" -> split by pipe
+                            rewardName = info.name ? info.name.split('|')[0] : "알 수 없는 보상";
+                            rewardCount = info.count;
+                            rewardIcon = info.icon;
+                        }
+                    }
+
+                    // Also try to get signCount strictly from calendar length
+                    const calculatedSignCount = doneItems.length;
+
+                    // Cumulative attendance days
+                    embed.fields.push({
+                        name: "📊 누적 출석",
+                        value: `${calculatedSignCount}일`,
+                        inline: true
+                    });
+                }
+            }
+            // Fallback: If calendar is missing (e.g. POST response might be different?), try other fields
+            else {
+                const signCount = apiData.signCount || apiData.sign_count || apiData.totalSignCount || apiData.currentSignCount;
+                if (signCount !== undefined) {
+                    embed.fields.push({
+                        name: "📊 누적 출석",
+                        value: `${signCount}일`,
+                        inline: true
+                    });
+                }
+
+                if (apiData.rewards && apiData.rewards.length > 0) {
+                    const r = apiData.rewards[0];
+                    rewardName = r.name;
+                    rewardCount = r.count;
+                    rewardIcon = r.icon;
+                }
             }
 
-            // Today's reward
-            if (apiData.rewards && apiData.rewards.length > 0) {
-                const reward = apiData.rewards[0];
-                let rewardText = reward.name || "보상";
-                if (reward.count) {
-                    rewardText += ` x${reward.count}`;
+            if (rewardName) {
+                let rewardText = rewardName;
+                if (rewardCount) {
+                    rewardText += ` x${rewardCount}`;
                 }
 
                 embed.fields.push({
@@ -411,12 +463,13 @@ class DiscordWebhookService {
                     inline: false
                 });
 
-                // Add reward image if available
-                if (reward.icon) {
+                if (rewardIcon) {
                     embed.thumbnail = {
-                        url: reward.icon
+                        url: rewardIcon
                     };
                 }
+            } else {
+                console.log("[Discord] Reward parsing failed even with new logic. Data keys:", Object.keys(apiData));
             }
         }
 
@@ -431,9 +484,16 @@ class CheckInController {
         this.discordService = new DiscordWebhookService(this.store);
     }
     init() {
-        chrome.alarms.create(ALARM_NAME, { periodInMinutes: 60 });
+        this.scheduleNextRun();
+
         chrome.alarms.onAlarm.addListener((alarm) => {
-            if (alarm.name === ALARM_NAME) this.run(false);
+            if (alarm.name === ALARM_NAME) {
+                this.run(false);
+            }
+        });
+
+        chrome.runtime.onStartup.addListener(() => {
+            this.checkOnStartup();
         });
 
         chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -467,13 +527,67 @@ class CheckInController {
             }
         });
 
-        this.run(false);
+        this.checkOnStartup();
+        this.initCookieListener();
+    }
+
+    getNextRunTime() {
+        const now = new Date();
+        const nextRun = new Date(now);
+        nextRun.setHours(1, 5, 0, 0); // 01:05 AM
+
+        if (now >= nextRun) {
+            nextRun.setDate(nextRun.getDate() + 1);
+        }
+        return nextRun.getTime();
+    }
+
+    scheduleNextRun() {
+        const nextRunTime = this.getNextRunTime();
+
+        chrome.alarms.clear(ALARM_NAME, () => {
+            chrome.alarms.create(ALARM_NAME, {
+                when: nextRunTime,
+                periodInMinutes: 1440
+            });
+        });
+    }
+
+    async checkOnStartup() {
+        const now = new Date();
+        const todayTarget = new Date();
+        todayTarget.setHours(1, 5, 0, 0);
+
+        if (now > todayTarget) {
+            await this.run(false);
+        }
+    }
+
+    initCookieListener() {
+        chrome.cookies.onChanged.addListener(async (changeInfo) => {
+            if (changeInfo.removed) return;
+
+            const domain = changeInfo.cookie.domain;
+            const name = changeInfo.cookie.name;
+            const value = changeInfo.cookie.value;
+
+            const isTargetDomain = TARGET_DOMAINS.some(d => domain.includes(d));
+            if (!isTargetDomain) return;
+
+            const isTargetCookie = ['SK_OAUTH_CRED_KEY', 'cred', 'sk_cred'].includes(name);
+
+            if (isTargetCookie) {
+                const allCookies = await this.service.getAllCookies();
+                const updated = await this.store.updateCredential(value, allCookies);
+
+                if (updated) {
+                    this.store.addLog("INFO", "쿠키 감지: 인증 정보 및 전체 쿠키 갱신됨");
+                }
+            }
+        });
     }
 
     async run(force) {
-        const isActive = await this.store.isAutoRunActive();
-        if (!force && !isActive) { this.clearBadge(); return; }
-
         const lastDate = await this.store.get('lastCheckDate');
         const serverToday = this.service.getServerTodayString();
         const lastStatus = await this.store.get('lastStatus');
@@ -484,10 +598,10 @@ class CheckInController {
 
         await this.store.set('isRunning', true);
         const result = await this.service.executeAttendance();
-        this.handleResult(result);
+        this.handleResult(result, force);
     }
 
-    async handleResult(result) {
+    async handleResult(result, isManual = false) {
         const serverToday = this.service.getServerTodayString();
         const timeString = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
@@ -497,20 +611,16 @@ class CheckInController {
             this.clearBadge();
             await this.store.saveResult("SUCCESS", serverToday, timeString);
 
-            // Send Discord notification based on status
             if (result.code === "SUCCESS") {
-                // First-time success - send success notification
-                const discordResult = await this.discordService.sendAttendanceNotification(result, serverToday);
-                console.log("Discord notification result:", discordResult);
-            } else if (result.code === "ALREADY_DONE") {
-                // Already completed - send already done notification
-                await this.discordService.sendAlreadyDoneNotification();
+                await this.discordService.sendAttendanceNotification(result, serverToday);
+            } else if (result.code === "ALREADY_DONE" && isManual) {
+                // 수동 실행일 때만 '이미 완료됨' 알림 전송 (자동 실행 시 스팸 방지)
+                await this.discordService.sendAlreadyDoneNotification(result);
             }
         } else {
             this.setBadgeX();
             await this.store.saveResult("FAIL", serverToday, timeString);
 
-            // Send Discord error notification on failure
             await this.discordService.sendErrorNotification(result.msg || "출석 체크 실패");
         }
     }

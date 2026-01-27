@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.2.2-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.2.2)
+[![Version](https://img.shields.io/badge/Version-1.2.3-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.2.3)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20%7C%20Edge%20%7C%20Whale-orange?style=flat-square)](https://chromewebstore.google.com/)
 
@@ -25,91 +25,86 @@ automatically performs the daily check-in for
 
 ---
 
-## Overview
+## 📝 Overview
 
-| Item | Description |
-|---|---|
-| Platform | Chromium-based browsers (Chrome, Edge, Whale, etc.) |
-| Version | 1.2.2 |
-| Requirement | User must be logged in to the SKPORT website |
-| Execution | Local browser automation |
-| External Network | None |
+> **⚠️ This extension currently supports KOREAN language interface only.**
 
----
+| Feature | Description |
+| :--- | :--- |
+| **Platform** | Chromium-based browsers (Chrome, Edge, Whale, etc.) |
+| **Version** | 1.2.3 |
+| **Condition** | Must be logged in to SKPORT website |
+| **Execution** | Local background automation |
+| **Network** | No external server communication |
 
-## Key Features
+<br/>
 
-### Invisible Auto Check-in
-- Automatically performs daily check-in on browser startup
-- Runs silently without blocking or covering the screen
+## ✨ Key Features
 
-### Smart Scheduling
-- Determines execution based on the game server reset time (UTC+8 00:00)
-- Skips execution if the daily check-in is already completed
+### 👻 Invisible Auto Check-in
+- **Silent Automation**: Runs in the background on browser startup.
+- Does not interrupt your workflow or cover the screen.
 
-### Account Info Display
-- Displays Role ID and Server ID when account is linked
-- Information shown below the "Linked" status
+### ⏰ Smart Scheduling
+- **Intelligent Timer**: Automatically calculates the game server reset time (UTC+8 00:00).
+- Skips execution if you have already checked in for the day.
 
-### Discord Notification
-- Send check-in results via Discord Webhook
-- Includes webhook testing functionality
-- Easy integration using Webhook URL
+### 🔔 Discord Notification
+- **Webhook Integration**: receive success/failure notifications directly in your Discord.
+- **Rich Embeds**: Displays reward thumbnails and cumulative attendance days.
+- **Test Mode**: Verify your webhook setup instantly.
 
-### Instant Check-in on Sync
-- Automatically triggers check-in immediately after successful account sync
-- No need to click extra buttons after linking
+### 🔒 Secure & Private
+- **Local Execution**: All operations run locally within your browser.
+- No personal data is sent to external servers.
 
-### Status Badge
-- Displays execution status via the extension icon  
-  - `no badge` : Check-in completed  
-  - `X` : Login required or execution failed
+### ⚡ Instant Check-in on Sync
+- **Immediate Action**: Triggers a check-in attempt immediately when you sync/update your account credentials.
 
-### Login Detection
-- Automatically stops execution if the user is not logged in
-- Notifies the user instead of force-opening pages
+### 🛡️ Status Badge
+- Visual status indicator on the extension icon:
+  - `(No Badge)` : ✅ Check-in Complete
+  - `X` (Red) : ❌ Login Required or Error
 
----
+<br/>
 
-## Installation
+## 🚀 Installation
 
-1. Select **Code → Download ZIP** from this repository
+1. Click the **[Code]** button at the top of this repo → Select **Download ZIP**
 2. Extract the downloaded archive
-3. Open `chrome://extensions` in the browser
-4. Enable **Developer mode**
-5. Click **Load unpacked** and select the extracted folder
+3. Open `chrome://extensions` in your browser address bar
+4. Enable **[Developer mode]** toggle at the top right
+5. Click **[Load unpacked]** at the top left
+6. Select the extracted folder to finish installation!
 
----
+<br/>
 
-## Usage
+## 📖 Usage
 
-1. Log in once to the Arknights: Endfield check-in page on SKPORT
-2. The extension will automatically perform the daily check-in on browser startup
-3. Click the extension icon to check status or run immediately using `CHECK NOW`
+1. **One-time Login**: Log in to the Arknights: Endfield check-in page on SKPORT.
+2. **Auto Run**: The extension will automatically check in every time you open the browser.
+3. **Check Status**: Click the extension icon to view logs or status.
+    - You can also use the `CHECK NOW` button for manual execution.
 
-## Troubleshooting
+<br/>
 
-> **⚠️ If "Failure" or the "X" badge persists**
+## 🔧 Troubleshooting
 
-Account synchronization may fail in the following situations:
-- Attempting to sync without being **logged in**
-- Persistent failure due to unknown errors even after attempting synchronization
+> [!WARNING]
+> **Is the "Failure" or "X" badge persistent?**
 
-**🌟 Solution**
-1. Click the extension icon → Click the **⚙️ Settings (Gear)** icon in the top right
-2. Click the **[Reset Data]** button to clear all stored data
-3. When the SKPORT site refreshes, **Log in again**
-4. Retry **Account Sync** following the popup instructions
+This may be due to session expiration or corrupted data. Please follow these steps:
 
-**If you encounter any issues, please try 'Reset Data' first.**
+1. Click the extension icon
+2. Click the **⚙️ Settings (Gear)** icon at the top right
+3. Click **[Reset Data]** (This safely clears all stored extension data)
+4. When the SKPORT site reloads, **Log in again**
+5. Follow the popup to retry **[Account Sync]**
 
-## Disclaimer
+<br/>
 
-- This project was developed for the **developer's personal convenience**.
-- Maintenance and feature improvements will be provided within the developer's available technical scope and time.
+## ⚖️ Disclaimer & License
 
----
-
-## License
-
-MIT License
+- This project is an unofficial extension developed for **personal convenience**.
+- Updates are provided irregularly based on the developer's spare time.
+- **MIT License**

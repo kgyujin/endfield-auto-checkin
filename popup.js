@@ -2,9 +2,8 @@ const storage = chrome.storage.local;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. 데이터 로드 및 UI 초기화
-    const data = await storage.get(['isGlobalActive', 'lastStatus', 'lastCheckDate', 'lastCheckTime', 'accountInfo', 'checkInLogs', 'isRunning', 'discordConfig']);
+    const data = await storage.get(['lastStatus', 'lastCheckDate', 'lastCheckTime', 'accountInfo', 'checkInLogs', 'isRunning', 'discordConfig']);
 
-    document.getElementById('globalToggle').checked = data.isGlobalActive !== false;
     renderStatus(data);
     renderLogs(data.checkInLogs);
     renderAccountInfo(data.accountInfo);
@@ -71,13 +70,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Discord event listeners
     document.getElementById('btnSaveWebhook').addEventListener('click', handleSaveWebhook);
     document.getElementById('btnTestWebhook').addEventListener('click', handleTestWebhook);
-    document.getElementById('discordToggle').addEventListener('change', async (e) => {
-        const data = await storage.get(['discordConfig']);
-        const config = data.discordConfig || {};
-        config.enabled = e.target.checked;
-        await storage.set({ discordConfig: config });
-        renderDiscordConfig(config);
-    });
 
     // Webhook help button
     document.getElementById('btnWebhookHelp').addEventListener('click', async () => {
@@ -85,12 +77,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             "1. 디스코드 서버 → 서버 설정 → 연동\n2. 웹후크 → 새 웹후크\n3. 웹후크 URL 복사 → 위에 붙여넣기",
             "웹훅 URL 얻는 방법"
         );
-    });
-
-    // 토글 스위치
-    document.getElementById('globalToggle').addEventListener('change', (e) => {
-        storage.set({ isGlobalActive: e.target.checked });
-        location.reload();
     });
 
     // 연동 해제 버튼 리스너는 renderAccountInfo에서 동적으로 등록/제거함
@@ -228,17 +214,7 @@ function renderStatus(data) {
     const statusEl = document.getElementById('statusDisplay');
     const timeEl = document.getElementById('lastRunDisplay');
 
-    if (data.isGlobalActive === false) {
-        statusEl.innerHTML = '<span style="color:#666">OFF</span>';
-
-        // OFF 상태일 때 주요 버튼 숨김
-        document.getElementById('btnSettings').style.display = 'none';
-        document.getElementById('runNowBtn').style.display = 'none';
-
-        return;
-    }
-
-    // ON 상태: 버튼 다시 표시
+    // Always show settings/run buttons
     document.getElementById('btnSettings').style.display = '';
     document.getElementById('runNowBtn').style.display = '';
 
@@ -341,7 +317,6 @@ async function handleSaveWebhook() {
     }
 
     const config = {
-        enabled: document.getElementById('discordToggle').checked,
         webhookUrl: webhookUrl,
         lastSync: new Date().toLocaleString('ko-KR')
     };
@@ -364,10 +339,7 @@ async function handleTestWebhook() {
     const data = await storage.get(['discordConfig']);
     const config = data.discordConfig || {};
 
-    if (!config.enabled) {
-        await Modal.alert("알림 활성화를 먼저 켜주세요.", "알림");
-        return;
-    }
+    // Toggle check removed - always allow test if URL exists
 
     // 테스트 유형 선택
     const testType = await showTestTypeModal();
@@ -497,24 +469,21 @@ function createTestEmbed(type) {
 
 function renderDiscordConfig(config) {
     const webhookUrlInput = document.getElementById('webhookUrl');
-    const discordToggle = document.getElementById('discordToggle');
     const statusDiv = document.getElementById('discordStatus');
 
     // 토글 상태는 config가 있으면 항상 설정 (URL 여부와 무관)
     if (config) {
-        discordToggle.checked = config.enabled !== false;
         webhookUrlInput.value = config.webhookUrl || '';
 
         if (config.webhookUrl) {
-            const status = config.enabled ? '활성화됨' : '비활성화됨';
-            const color = config.enabled ? '#34C759' : '#FF9500';
+            const status = '활성화됨';
+            const color = '#34C759';
             statusDiv.innerHTML = `<span style="color:${color}">●</span> ${status}<br><span style="font-size:10px; color:#888;">최근 수정: ${config.lastSync || '-'}</span>`;
         } else {
             statusDiv.innerHTML = '웹훅 URL을 설정해주세요';
         }
     } else {
         webhookUrlInput.value = '';
-        discordToggle.checked = false;
         statusDiv.innerHTML = '설정되지 않음';
     }
 }

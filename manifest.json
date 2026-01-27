@@ -1,13 +1,12 @@
 {
     "manifest_version": 3,
     "name": "엔드필드 자동 출석체크",
-    "version": "1.2.2",
+    "version": "1.2.3",
     "description": "Automated daily check-in for Arknights: Endfield",
     "permissions": [
         "storage",
         "alarms",
-        "cookies",
-        "activeTab"
+        "cookies"
     ],
     "host_permissions": [
         "https://*.skport.com/*",

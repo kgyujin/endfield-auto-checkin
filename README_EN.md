@@ -35,7 +35,7 @@ automatically performs the daily check-in for
 | **Version** | 1.2.4 |
 | **Condition** | Must be logged in to SKPORT website |
 | **Execution** | Local background automation |
-| **Network** | No external server communication |
+| **Network** | None (Except optional Discord Webhook) |
 
 <br/>
 
@@ -56,7 +56,7 @@ automatically performs the daily check-in for
 
 ### 🔒 Secure & Private
 - **Local Execution**: All operations run locally within your browser.
-- No personal data is sent to external servers.
+- No personal data is sent to external servers (except optional Discord Webhook).
 
 ### ⚡ Instant Check-in on Sync
 - **Immediate Action**: Triggers a check-in attempt immediately when you sync/update your account credentials.
@@ -105,6 +105,6 @@ This may be due to session expiration or corrupted data. Please follow these ste
 
 ## ⚖️ Disclaimer & License
 
-- This project is an unofficial extension developed for **personal convenience**.
-- Updates are provided irregularly based on the developer's spare time.
+- This project is an unofficial extension.
+- The user is solely responsible for any issues arising from the use of this program.
 - **MIT License**

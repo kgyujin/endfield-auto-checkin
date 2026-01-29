@@ -11,7 +11,9 @@
     ],
     "host_permissions": [
         "https://*.skport.com/*",
-        "https://*.gryphline.com/*"
+        "https://*.gryphline.com/*",
+        "https://*.discord.com/*",
+        "https://*.discordapp.com/*"
     ],
     "background": {
         "service_worker": "background.js"

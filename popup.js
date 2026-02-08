@@ -412,6 +412,13 @@ async function checkAnnouncement() {
 
         if (!announceData.active) return;
 
+        if (announceData.target_version && announceData.check_version) {
+            const currentVersion = chrome.runtime.getManifest().version;
+            if (compareVersions(currentVersion, announceData.target_version) >= 0) {
+                return;
+            }
+        }
+
         const storageData = await storage.get('lastSeenAnnouncementDate');
         const lastSeen = storageData.lastSeenAnnouncementDate;
         const updatedAt = data.updated_at;
@@ -444,4 +451,18 @@ async function checkAnnouncement() {
     } catch (e) {
         console.log("Announcement check failed:", e);
     }
+}
+
+function compareVersions(v1, v2) {
+    const p1 = v1.split('.').map(Number);
+    const p2 = v2.split('.').map(Number);
+    const len = Math.max(p1.length, p2.length);
+
+    for (let i = 0; i < len; i++) {
+        const num1 = p1[i] || 0;
+        const num2 = p2[i] || 0;
+        if (num1 > num2) return 1;
+        if (num1 < num2) return -1;
+    }
+    return 0;
 }

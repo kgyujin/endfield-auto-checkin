@@ -157,7 +157,6 @@ class NotificationService {
         };
 
         if (isSuccess) {
-            // Status field removed as per request
             if (data.rewardName) {
                 embed.fields.push({
                     name: i18n.get('field_reward'),

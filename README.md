@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.5.0-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.5.0)
+[![Version](https://img.shields.io/badge/Version-1.5.2-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.5.2)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/xog9)
 
@@ -31,7 +31,7 @@ Endfield Auto Check-in은
 | 구분 | 상세 내용 |
 | :--- | :--- |
 | **플랫폼** | Chrome, Edge, Whale 등 Chromium 기반 브라우저 |
-| **버전** | 1.5.0 |
+| **버전** | 1.5.2 |
 | **동작 조건** | SKPORT 게임 사이트 로그인 상태 |
 | **실행 방식** | 로컬 브라우저 백그라운드 자동화 (Hidden Window) |
 | **외부 통신** | 없음 (단, 사용자 설정 시 Discord 알림 전송) |

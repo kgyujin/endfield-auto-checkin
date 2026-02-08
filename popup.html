@@ -59,6 +59,8 @@
         </header>
 
         <div id="mainView">
+
+
             <div class="status-card">
                 <div class="status-header" data-i18n="status_header">TODAY'S STATUS</div>
                 <div id="statusDisplay" class="status-value">-</div>
@@ -73,7 +75,59 @@
         </div>
 
         <div id="settingsView" style="display: none;">
+            <div id="updateBanner" class="update-banner" style="display: none;">
+                <span class="update-icon">⚡</span>
+                <div class="update-text">
+                    <div class="update-title" data-i18n="update_avail_title">업데이트 가능</div>
+                    <div class="update-desc" data-i18n="update_avail_desc">폴더 내 update.ps1을 실행하세요.</div>
+                </div>
+                <!-- <div class="update-dismiss" title="닫기/Close">✕</div> -->
+            </div>
 
+            <!-- Version Dashboard (Compact) -->
+            <div class="version-card compact-ver">
+                <!-- Top Row: Current Version & Command Copy -->
+                <div class="ver-top-row">
+                    <div class="ver-current-group">
+                        <span class="ver-label-tiny" data-i18n="ver_current">Current</span>
+                        <span id="verCurrent" class="ver-val-big">-</span>
+                    </div>
+                </div>
+
+                <div class="ver-divider-thin"></div>
+
+                <!-- Middle Row: Stable & Beta Downloads -->
+                <div class="ver-dl-row">
+                    <div class="ver-dl-item">
+                        <span class="ver-label-tiny" data-i18n="ver_latest_stable">Stable</span>
+                        <div class="ver-val-dl">
+                            <span id="verStable">-</span>
+                            <button id="btnDlStable" class="ver-dl-icon" title="Download">⬇</button>
+                        </div>
+                    </div>
+                    <div class="ver-dl-item">
+                        <span class="ver-label-tiny" data-i18n="ver_latest_beta" style="color:#a29bfe">Preview</span>
+                        <div class="ver-val-dl">
+                            <span id="verBeta">-</span>
+                            <button id="btnDlBeta" class="ver-dl-icon" title="Download">⬇</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: History (Compact) -->
+                <div class="ver-history-compact">
+                    <div id="verHistoryDropdown" class="custom-dropdown">
+                        <div id="verHistoryTrigger" class="dropdown-trigger">
+                            <span id="verHistorySelectedText">- Select -</span>
+                            <div class="dropdown-arrow"></div>
+                        </div>
+                        <div id="verHistoryOptions" class="dropdown-options">
+                            <!-- Options populated by JS -->
+                        </div>
+                    </div>
+                    <button id="btnDlHistory" class="ver-dl-btn-square" title="Download Selected">⬇</button>
+                </div>
+            </div>
 
             <div class="section-title" data-i18n="section_logs">최근 기록</div>
             <div id="logList" class="log-list">

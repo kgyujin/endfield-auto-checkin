@@ -132,7 +132,7 @@ class NotificationService {
 
         if (isSuccess) {
             titleKey = 'embed_success_title';
-            color = 13951562; // #D4D94A
+            color = 13951562;
         } else if (isAlreadyDone) {
             titleKey = 'embed_already_title';
             color = 3447003;
@@ -385,6 +385,7 @@ class ApplicationController {
         this.logger = new AttendanceLogger();
         this.notifier = new NotificationService(this.logger);
         this.executor = new AttendanceExecutor(this.logger, this.notifier);
+        this.updater = new UpdateChecker(this.logger);
     }
 
     async start() {
@@ -404,11 +405,13 @@ class ApplicationController {
         await i18n.init();
         if (alarm.name === CONSTANTS.ALARM_NAME) {
             this.executor.execute();
+            await this.updater.check();
         }
     }
 
     async handleStartup() {
         await i18n.init();
+        await this.updater.check();
     }
 
     handleMessage(msg, sender, sendResponse) {
@@ -443,6 +446,12 @@ class ApplicationController {
         if (msg.action === "sendTestWebhook") {
             return await this.notifier.sendTest(msg.testType);
         }
+
+        if (msg.action === "checkUpdate") {
+            await this.updater.check();
+            const data = await this.logger.get('updateInfo');
+            return { code: "SUCCESS", data: data.updateInfo };
+        }
     }
 
     handleTabRemoval(tabId) {
@@ -468,6 +477,84 @@ class ApplicationController {
             next.setDate(next.getDate() + 1);
         }
         return next.getTime();
+    }
+}
+
+class UpdateChecker {
+    constructor(logger) {
+        this.logger = logger;
+        this.repo = "kgyujin/endfield-auto-checkin";
+    }
+
+    async check() {
+        try {
+            const manifest = chrome.runtime.getManifest();
+            const currentVersion = manifest.version;
+
+            const response = await fetch(`https://api.github.com/repos/${this.repo}/releases?per_page=30`);
+            if (!response.ok) return;
+
+            const releases = await response.json();
+            if (!releases || releases.length === 0) return;
+
+            const stableRelease = releases.find(r => !r.prerelease);
+            const latestStableVersion = stableRelease ? stableRelease.tag_name.replace(/^v/, '') : null;
+
+            const betaRelease = releases.find(r => r.prerelease);
+            const latestBetaVersion = betaRelease ? betaRelease.tag_name.replace(/^v/, '') : null;
+
+            const releaseList = releases.map(r => ({
+                version: r.tag_name.replace(/^v/, ''),
+                isPrerelease: r.prerelease,
+                zipUrl: r.zipball_url,
+                htmlUrl: r.html_url,
+                publishedAt: r.published_at
+            })).slice(0, 10);
+
+            let updateAvailable = false;
+            let targetUrl = "";
+
+            if (latestStableVersion && this.compareVersions(latestStableVersion, currentVersion) > 0) {
+                updateAvailable = true;
+                targetUrl = stableRelease.html_url;
+            } else if (latestBetaVersion && this.compareVersions(latestBetaVersion, currentVersion) > 0) {
+                updateAvailable = true;
+                targetUrl = betaRelease.html_url;
+            }
+
+            await this.logger.set({
+                updateInfo: {
+                    currentVersion: currentVersion,
+                    latestStable: latestStableVersion,
+                    latestBeta: latestBetaVersion,
+                    releases: releaseList,
+                    lastCheck: new Date().toLocaleString()
+                },
+                updateAvailable: updateAvailable
+            });
+
+            if (updateAvailable) {
+                await chrome.action.setBadgeText({ text: 'UP' });
+                await chrome.action.setBadgeBackgroundColor({ color: '#FF3B30' });
+            } else {
+                await chrome.action.setBadgeText({ text: '' });
+            }
+
+        } catch (error) {
+            console.error('Update check failed:', error);
+        }
+    }
+
+    compareVersions(v1, v2) {
+        const p1 = v1.split('.').map(Number);
+        const p2 = v2.split('.').map(Number);
+        for (let i = 0; i < Math.max(p1.length, p2.length); i++) {
+            const n1 = p1[i] || 0;
+            const n2 = p2[i] || 0;
+            if (n1 > n2) return 1;
+            if (n1 < n2) return -1;
+        }
+        return 0;
     }
 }
 

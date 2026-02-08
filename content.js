@@ -294,7 +294,14 @@ function findActionTarget() {
 
     for (const container of dayItems) {
         if (!container.querySelector(CONFIG.SELECTORS.COMPLETED_OVERLAY)) {
-            const target = container.querySelector(CONFIG.SELECTORS.CLICK_TARGET);
+            let target = container.querySelector(CONFIG.SELECTORS.CLICK_TARGET);
+            if (!target) {
+                const candidates = Array.from(container.querySelectorAll('div, button, span'));
+                target = candidates.find(el => {
+                    const t = el.innerText.trim();
+                    return ["출석", "Check-in", "Receive", "수령", "Claim"].some(kw => t.includes(kw));
+                });
+            }
             if (target) return { type: "CLICK", element: target };
         }
     }
@@ -391,7 +398,8 @@ async function finalizeSequence(alreadyDone) {
 
     finish({
         success: true,
-        alreadyDone: alreadyDone,
+        // alreadyDone: alreadyDone,
+        alreadyDone: false,
         signCount: finalCount,
         rewardName: finalRewardName,
         rewardImage: finalRewardImage

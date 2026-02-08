@@ -132,7 +132,7 @@ class NotificationService {
 
         if (isSuccess) {
             titleKey = 'embed_success_title';
-            color = 5763719;
+            color = 13951562; // #D4D94A
         } else if (isAlreadyDone) {
             titleKey = 'embed_already_title';
             color = 3447003;
@@ -149,17 +149,15 @@ class NotificationService {
                 }
             ],
             footer: {
-                text: i18n.get('footer_text')
+                text: data.signCount
+                    ? `${i18n.get('field_accumulated')}: ${data.signCount}${i18n.get('val_days')}`
+                    : i18n.get('footer_text')
             },
             timestamp: new Date().toISOString()
         };
 
         if (isSuccess) {
-            embed.fields.push({
-                name: i18n.get('field_status'),
-                value: i18n.get('val_success_msg'),
-                inline: false
-            });
+            // Status field removed as per request
             if (data.rewardName) {
                 embed.fields.push({
                     name: i18n.get('field_reward'),
@@ -290,13 +288,13 @@ class AttendanceExecutor {
         this.activeTabId = tab.id;
     }
 
-    async processResult(result) {
+    async processResult(result, senderTabId) {
         if (result.message === "LOGIN_REQUIRED") {
             await this.handleLoginRequired();
             return;
         }
 
-        this.closeTab();
+        this.closeTab(senderTabId);
 
         const now = new Date();
         const dates = {
@@ -340,8 +338,13 @@ class AttendanceExecutor {
         await this.notifier.send({ status: "FAIL", error: errorMsg }, dates.serverDate, { force: isManual });
     }
 
-    closeTab() {
-        if (this.activeTabId) {
+    closeTab(targetTabId) {
+        if (targetTabId) {
+            chrome.tabs.remove(targetTabId).catch(() => { });
+            if (this.activeTabId === targetTabId) {
+                this.activeTabId = null;
+            }
+        } else if (this.activeTabId) {
             chrome.tabs.remove(this.activeTabId).catch(() => { });
             this.activeTabId = null;
         }
@@ -410,11 +413,11 @@ class ApplicationController {
     }
 
     handleMessage(msg, sender, sendResponse) {
-        this.processMessage(msg).then(sendResponse);
+        this.processMessage(msg, sender).then(sendResponse);
         return true;
     }
 
-    async processMessage(msg) {
+    async processMessage(msg, sender) {
         await i18n.init();
 
         if (msg.action === "manualRun") {
@@ -423,7 +426,8 @@ class ApplicationController {
         }
 
         if (msg.action === "checkInResult") {
-            await this.executor.processResult(msg.result);
+            const tabId = sender && sender.tab ? sender.tab.id : null;
+            await this.executor.processResult(msg.result, tabId);
             return { code: "RECEIVED" };
         }
 

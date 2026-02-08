@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.5.2-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.5.2)
+[![Version](https://img.shields.io/badge/Version-1.5.3-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.5.3)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/xog9)
 
@@ -31,7 +31,7 @@ Endfield Auto Check-inは、
 | 項目 | 詳細 |
 | :--- | :--- |
 | **プラットフォーム** | Chrome, Edge, Whale などのChromiumベースブラウザ |
-| **バージョン** | 1.5.2 |
+| **バージョン** | 1.5.3 |
 | **動作条件** | SKPORTゲームサイトへのログイン状態 |
 | **実行方式** | ローカルブラウザバックグラウンド自動化 (Hidden Window) |
 | **外部通信** | なし (ただし、ユーザー設定時のDiscord通知を除く) |

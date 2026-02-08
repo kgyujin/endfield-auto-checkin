@@ -10,6 +10,7 @@ import threading
 import tempfile
 import time
 import ctypes
+import subprocess
 
 # Configuration
 REPO_OWNER = "kgyujin"
@@ -36,37 +37,22 @@ class ModernPopupUpdater(tk.Tk):
     def __init__(self):
         super().__init__()
 
-        # Window Setup
-        self.overrideredirect(True)
+        # Window Setup - Use normal window to appear in Alt+Tab
+        self.title("⚡ Endfield Auto Check-in Updater")
         self.geometry("420x260")
-        self.configure(bg="#0F0F0F")
+        self.configure(bg="#1A1A1A")
+        self.resizable(False, False)
         
-        # Main Container with subtle shadow effect
-        self.main_frame = tk.Frame(self, bg="#1A1A1A", highlightbackground="#2A2A2A", highlightthickness=1)
-        self.main_frame.pack(fill="both", expand=True, padx=3, pady=3)
+        # Auto-close timer reference
+        self.auto_close_timer = None
         
-        # Title Bar
-        self.title_bar = tk.Frame(self.main_frame, bg="#1A1A1A", height=50)
-        self.title_bar.pack(fill="x", side="top")
-        self.title_bar.pack_propagate(False)
+        # Track if updater.exe needs self-update
+        self.updater_needs_update = False
+        self.new_updater_path = None
         
-        # Make draggable
-        self.title_bar.bind("<Button-1>", self.start_move)
-        self.title_bar.bind("<B1-Motion>", self.do_move)
-        
-        # Title with icon-like emoji
-        title_container = tk.Frame(self.title_bar, bg="#1A1A1A")
-        title_container.pack(expand=True)
-        
-        self.lbl_title = tk.Label(title_container, text="⚡ Endfield Auto Check-in", 
-                                 font=("Pretendard", 13, "bold"), bg="#1A1A1A", fg="#D4D94A")
-        self.lbl_title.pack()
-        self.lbl_title.bind("<Button-1>", self.start_move)
-        self.lbl_title.bind("<B1-Motion>", self.do_move)
-        
-        # Separator line
-        separator = tk.Frame(self.main_frame, bg="#2A2A2A", height=1)
-        separator.pack(fill="x", padx=20)
+        # Main Container
+        self.main_frame = tk.Frame(self, bg="#1A1A1A")
+        self.main_frame.pack(fill="both", expand=True, padx=15, pady=15)
         
         # Set Icon
         try:
@@ -155,19 +141,6 @@ class ModernPopupUpdater(tk.Tk):
             else:
                 self.btn_close.config(bg="#2A2A2A")
 
-    def start_move(self, event):
-        self.x = event.x_root
-        self.y = event.y_root
-
-    def do_move(self, event):
-        deltax = event.x_root - self.x
-        deltay = event.y_root - self.y
-        x = self.winfo_x() + deltax
-        y = self.winfo_y() + deltay
-        self.geometry(f"+{x}+{y}")
-        self.x = event.x_root
-        self.y = event.y_root
-
     def center_window(self, w, h):
         self.update_idletasks()
         screen_width = self.winfo_screenwidth()
@@ -177,8 +150,40 @@ class ModernPopupUpdater(tk.Tk):
         self.geometry(f"{w}x{h}+{x}+{y}")
 
     def close_app(self):
+        # Cancel auto-close timer if it exists
+        if self.auto_close_timer:
+            self.after_cancel(self.auto_close_timer)
+        
+        # If updater.exe needs self-update, create and run bootstrap script
+        if self.updater_needs_update and self.new_updater_path:
+            self.run_self_update()
+        
         self.destroy()
         sys.exit(0)
+    
+    def run_self_update(self):
+        """Create and execute bootstrap script to update updater.exe"""
+        try:
+            bootstrap_script = os.path.join(CURRENT_DIR, "update_bootstrap.bat")
+            updater_exe = os.path.join(CURRENT_DIR, "updater.exe")
+            
+            # Create bootstrap batch script
+            with open(bootstrap_script, "w", encoding="utf-8") as f:
+                f.write("@echo off\n")
+                f.write("timeout /t 1 /nobreak >nul\n")
+                f.write(f'del /f /q "{updater_exe}"\n')
+                f.write(f'move /y "{self.new_updater_path}" "{updater_exe}"\n')
+                f.write(f'start "" "{updater_exe}"\n')
+                f.write(f'del /f /q "%~f0"\n')
+            
+            # Execute bootstrap script in background
+            subprocess.Popen(
+                [bootstrap_script],
+                creationflags=subprocess.CREATE_NO_WINDOW,
+                cwd=CURRENT_DIR
+            )
+        except Exception as e:
+            print(f"Failed to run self-update: {e}")
 
     def update_status(self, message, is_error=False, is_success=False, show_completion_popup=False):
         self.after(0, lambda: self._update_status_ui(message, is_error, is_success, show_completion_popup))
@@ -207,10 +212,20 @@ class ModernPopupUpdater(tk.Tk):
             else:
                 self.btn_close.config(bg="#FF6B6B", fg="white", activebackground="#FF8787", activeforeground="white")
             
+            # Start 10-second auto-close timer (or immediate for self-update)
+            if self.updater_needs_update:
+                # For self-update, close immediately after showing message
+                self.auto_close_timer = self.after(2000, self.close_app)
+            else:
+                self.auto_close_timer = self.after(10000, self.close_app)
+            
             # Only show popup and auto-close for actual updates, not for "already up to date"
             if show_completion_popup:
-                self.after(1000, lambda: messagebox.showinfo("Success", "Update Completed!"))
-                self.after(1500, self.close_app)
+                if self.updater_needs_update:
+                    self.after(500, lambda: messagebox.showinfo("Success", "Update Completed!\nUpdater will restart to apply self-update."))
+                else:
+                    self.after(1000, lambda: messagebox.showinfo("Success", "Update Completed!"))
+                    self.after(1500, self.close_app)
 
     def get_current_version(self):
         if not os.path.exists(MANIFEST_FILE):
@@ -270,7 +285,11 @@ class ModernPopupUpdater(tk.Tk):
                     s = os.path.join(source_folder, item)
                     d = os.path.join(CURRENT_DIR, item)
                     
+                    # If updater.exe is in the update, save it for self-update
                     if item.lower() == "updater.exe":
+                        self.updater_needs_update = True
+                        self.new_updater_path = os.path.join(CURRENT_DIR, "updater_new.exe")
+                        shutil.copy2(s, self.new_updater_path)
                         continue
                         
                     if os.path.isdir(s):
@@ -280,7 +299,10 @@ class ModernPopupUpdater(tk.Tk):
                     else:
                         shutil.copy2(s, d)
             
-            self.update_status("✓ Update Complete!", is_success=True, show_completion_popup=True)
+            if self.updater_needs_update:
+                self.update_status("✓ Update Complete! (Updater will restart)", is_success=True, show_completion_popup=True)
+            else:
+                self.update_status("✓ Update Complete!", is_success=True, show_completion_popup=True)
 
         except Exception as e:
             self.update_status(f"✗ Error: {str(e)}", is_error=True)

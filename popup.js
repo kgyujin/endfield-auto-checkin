@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         checkAnnouncement();
         renderVersionInfo();
 
+        chrome.runtime.sendMessage({ action: "checkUpdate" }, (response) => {
+            if (response && response.code === "SUCCESS") {
+            }
+        });
+
         document.getElementById('btnLang').addEventListener('click', async () => {
             const selectedLang = await showLanguageModal();
             if (selectedLang) {

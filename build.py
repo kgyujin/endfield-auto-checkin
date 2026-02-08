@@ -21,9 +21,8 @@ def verify_icon():
         print("Please place your icon.ico file in the directory.")
         return False
     
-    # Check file size (should be reasonable for an icon)
     size = os.path.getsize(icon_file)
-    if size < 100:  # Too small
+    if size < 100:
         print(f"WARNING: {icon_file} seems too small ({size} bytes)")
         return False
     
@@ -37,7 +36,6 @@ def build_exe():
         return
 
     try:
-        # Use absolute path for icon to ensure PyInstaller finds it
         icon_path = os.path.abspath("icon.ico")
         
         cmd = [
@@ -46,8 +44,8 @@ def build_exe():
             "--onefile",
             "--name", "updater",
             "--clean",
-            f"--icon={icon_path}",           # Use = syntax for clarity
-            f"--add-data={icon_path};.",     # Embed icon for runtime
+            f"--icon={icon_path}",
+            f"--add-data={icon_path};.",
             "updater.py"
         ]
         

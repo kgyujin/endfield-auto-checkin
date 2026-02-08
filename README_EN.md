@@ -2,7 +2,7 @@
 
 # Endfield Auto Check-in
 
-[![Version](https://img.shields.io/badge/Version-1.5.3-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.5.3)
+[![Version](https://img.shields.io/badge/Version-1.5.4-blue?style=flat-square)](https://github.com/kgyujin/endfield-auto-checkin/releases/tag/v1.5.4)
 [![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](./LICENSE)
 [![Ko-fi](https://img.shields.io/badge/Ko--fi-F16061?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/xog9)
 
@@ -31,7 +31,7 @@ automatically performs the daily check-in for
 | Feature | Description |
 | :--- | :--- |
 | **Platform** | Chromium-based browsers (Chrome, Edge, Whale, etc.) |
-| **Version** | 1.5.3 |
+| **Version** | 1.5.4 |
 | **Condition** | Must be logged in to SKPORT website |
 | **Execution** | Local background automation (Hidden Window) |
 | **Network** | None (Except optional Discord Webhook) |

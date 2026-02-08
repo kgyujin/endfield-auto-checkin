@@ -10,7 +10,6 @@ const TRANSLATIONS = {
 
         section_account: "계정 연동 상태",
         info_no_info: "정보 없음",
-        btn_sync_refresh: "연동 갱신",
         btn_sync_start: "계정 연동하기",
 
         section_logs: "최근 기록 (50개)",
@@ -75,6 +74,7 @@ const TRANSLATIONS = {
         log_logout: "연동 해제",
         log_cookie_update: "쿠키 감지: 인증 정보 및 전체 쿠키 갱신됨",
         log_already_sent: "이미 완료됨 알림 전송",
+        log_start_checkin: "출석 체크 시작",
 
         embed_success_title: "🎉 엔드필드 출석 체크 완료!",
         embed_already_title: "✅ 출석 체크 이미 완료됨",
@@ -142,8 +142,6 @@ const TRANSLATIONS = {
 
         section_account: "Account Sync Status",
         info_no_info: "No Information",
-        btn_sync_refresh: "Refresh Sync",
-        btn_sync_refresh: "Refresh Sync",
         btn_sync_start: "Sync Account",
         btn_copy_update_cmd: "Copy Update Command",
         btn_copy_update_cmd_short: "Copy Cmd",
@@ -214,6 +212,7 @@ const TRANSLATIONS = {
         log_logout: "Unlinked",
         log_cookie_update: "Cookie Update: Credentials refreshed",
         log_already_sent: "Already Done Notification Sent",
+        log_start_checkin: "Starting check-in",
 
         embed_success_title: "🎉 Endfield Check-in Complete!",
         embed_already_title: "✅ Check-in Already Done",
@@ -281,8 +280,6 @@ const TRANSLATIONS = {
 
         section_account: "アカウント連携状態",
         info_no_info: "情報なし",
-        btn_sync_refresh: "連携更新",
-        btn_sync_refresh: "連携更新",
         btn_sync_start: "アカウント連携",
         btn_copy_update_cmd: "アップデートコマンドをコピー",
         btn_copy_update_cmd_short: "Cmdコピー",
@@ -353,6 +350,7 @@ const TRANSLATIONS = {
         log_logout: "連携解除",
         log_cookie_update: "Cookie更新: 認証情報を更新しました",
         log_already_sent: "完了通知を送信しました",
+        log_start_checkin: "チェックイン開始",
 
         embed_success_title: "🎉 エンドフィールド チェックイン完了！",
         embed_already_title: "✅ チェックインはすでに完了しています",
@@ -420,8 +418,6 @@ const TRANSLATIONS = {
 
         section_account: "账号绑定状态",
         info_no_info: "无信息",
-        btn_sync_refresh: "刷新绑定",
-        btn_sync_refresh: "刷新绑定",
         btn_sync_start: "绑定账号",
         btn_copy_update_cmd: "复制更新命令",
         btn_copy_update_cmd_short: "复制命令",
@@ -492,6 +488,7 @@ const TRANSLATIONS = {
         log_logout: "解除绑定",
         log_cookie_update: "Cookie更新: 凭证已刷新",
         log_already_sent: "已发送完成通知",
+        log_start_checkin: "开始签到",
 
         embed_success_title: "🎉 Endfield 签到完成！",
         embed_already_title: "✅ 签到已完成",

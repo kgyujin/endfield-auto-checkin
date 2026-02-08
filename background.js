@@ -102,10 +102,6 @@ class NotificationService {
             return;
         }
 
-        if (await this.shouldSkipNotification(dateStr, options.force)) {
-            return;
-        }
-
         const embed = this.createEmbed(data);
         await this.dispatchWebhook(embed);
         await this.updateLastSent(dateStr);

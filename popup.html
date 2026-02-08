@@ -75,22 +75,17 @@
         </div>
 
         <div id="settingsView" style="display: none;">
-            <div id="updateBanner" class="update-banner" style="display: none;">
-                <span class="update-icon">⚡</span>
-                <div class="update-text">
-                    <div class="update-title" data-i18n="update_avail_title">업데이트 가능</div>
-                    <div class="update-desc" data-i18n="update_avail_desc">폴더 내 update.ps1을 실행하세요.</div>
-                </div>
-                <!-- <div class="update-dismiss" title="닫기/Close">✕</div> -->
-            </div>
-
             <!-- Version Dashboard (Compact) -->
             <div class="version-card compact-ver">
-                <!-- Top Row: Current Version & Command Copy -->
+                <!-- Top Row: Current Version & Update Banner -->
                 <div class="ver-top-row">
                     <div class="ver-current-group">
                         <span class="ver-label-tiny" data-i18n="ver_current">Current</span>
                         <span id="verCurrent" class="ver-val-big">-</span>
+                    </div>
+                    <div id="updateBanner" class="update-banner-compact" style="display: none;">
+                        <span class="update-icon-compact">⚡</span>
+                        <span class="update-text-compact" data-i18n="update_avail_title">업데이트</span>
                     </div>
                 </div>
 

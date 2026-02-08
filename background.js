@@ -484,8 +484,15 @@ class UpdateChecker {
 
     async check() {
         try {
-            const manifest = chrome.runtime.getManifest();
-            const currentVersion = manifest.version;
+            let currentVersion;
+            try {
+                const manifestUrl = chrome.runtime.getURL('manifest.json');
+                const manifestResponse = await fetch(manifestUrl);
+                const manifestData = await manifestResponse.json();
+                currentVersion = manifestData.version;
+            } catch (e) {
+                currentVersion = chrome.runtime.getManifest().version;
+            }
 
             const response = await fetch(`https://api.github.com/repos/${this.repo}/releases?per_page=30`);
             if (!response.ok) return;

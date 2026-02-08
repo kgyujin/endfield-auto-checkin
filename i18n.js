@@ -101,7 +101,7 @@ const TRANSLATIONS = {
 
         prompt_title: "⚡ 자동 출석 계정 연동",
         prompt_desc: "로그인된 계정으로<br>자동 출석을 설정하시겠습니까?",
-        update_avail_title: "⚡ 업데이트 가능",
+        update_avail_title: "업데이트 가능",
         update_avail_desc: "새로운 버전이 있습니다.",
         ver_current: "현재 버전",
         ver_latest_stable: "최신 정식",
@@ -239,7 +239,7 @@ const TRANSLATIONS = {
 
         prompt_title: "⚡ Auto Check-in Account Sync",
         prompt_desc: "Do you want to set up auto check-in<br>with the logged-in account?",
-        update_avail_title: "⚡ Update Available",
+        update_avail_title: "Update Available",
         update_avail_desc: "Run update.ps1 in the folder.",
         ver_current: "Current Version",
         ver_latest_stable: "Latest Stable",
@@ -377,7 +377,7 @@ const TRANSLATIONS = {
 
         prompt_title: "⚡ 自動チェックイン連携",
         prompt_desc: "現在のアカウントで<br>自動チェックインを設定しますか？",
-        update_avail_title: "⚡ アップデート可能",
+        update_avail_title: "アップデート可能",
         update_avail_desc: "フォルダ内のupdate.ps1を実行してください。",
         ver_current: "現在のバージョン",
         ver_latest_stable: "最新正式版",
@@ -515,7 +515,7 @@ const TRANSLATIONS = {
 
         prompt_title: "⚡ 自动签到账号绑定",
         prompt_desc: "是否使用当前登录的账号<br>设置自动签到？",
-        update_avail_title: "⚡ 可更新",
+        update_avail_title: "可更新",
         update_avail_desc: "请运行文件夹中的 update.ps1。",
         ver_current: "当前版本",
         ver_latest_stable: "最新正式版",

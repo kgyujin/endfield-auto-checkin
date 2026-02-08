@@ -17,7 +17,36 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderVersionInfo();
 
         chrome.runtime.sendMessage({ action: "checkUpdate" }, (response) => {
+            console.log('[Version Check] Response:', response);
             if (response && response.code === "SUCCESS") {
+                renderVersionInfo();
+
+                storage.get(['updateInfo'], async (data) => {
+                    console.log('[Version Check] updateInfo:', data.updateInfo);
+
+                    if (data.updateInfo && data.updateInfo.currentVersion) {
+                        const loadedVersion = chrome.runtime.getManifest().version;
+                        const fileVersion = data.updateInfo.currentVersion;
+
+                        console.log('[Version Check] Loaded:', loadedVersion, 'File:', fileVersion);
+
+                        if (loadedVersion !== fileVersion) {
+                            console.log('[Version Check] Mismatch detected! Showing dialog...');
+                            const shouldReload = await Modal.confirm(
+                                `파일 버전(v${fileVersion})과 로드된 버전(v${loadedVersion})이 다릅니다.\n확장 프로그램을 리로드하시겠습니까?`,
+                                '⚡ 버전 불일치'
+                            );
+
+                            if (shouldReload) {
+                                chrome.runtime.reload();
+                            }
+                        } else {
+                            console.log('[Version Check] Versions match');
+                        }
+                    } else {
+                        console.log('[Version Check] No updateInfo');
+                    }
+                });
             }
         });
 

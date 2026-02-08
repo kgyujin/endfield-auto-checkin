@@ -548,8 +548,7 @@ function renderVersionInfo() {
             return;
         }
 
-        const manifest = chrome.runtime.getManifest();
-        const currentVersion = manifest.version;
+        const currentVersion = info.currentVersion || chrome.runtime.getManifest().version;
 
         if (verCurrent) verCurrent.innerText = "v" + currentVersion;
         if (verStable) verStable.innerText = info.latestStable ? "v" + info.latestStable : "-";

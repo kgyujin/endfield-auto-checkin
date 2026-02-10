@@ -33,8 +33,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (loadedVersion !== fileVersion) {
                             console.log('[Version Check] Mismatch detected! Showing dialog...');
                             const shouldReload = await Modal.confirm(
-                                `파일 버전(v${fileVersion})과 로드된 버전(v${loadedVersion})이 다릅니다.\n확장 프로그램을 리로드하시겠습니까?`,
-                                '⚡ 버전 불일치'
+                                i18n.get('msg_version_mismatch')
+                                    .replace('{fileVer}', fileVersion)
+                                    .replace('{loadedVer}', loadedVersion),
+                                i18n.get('title_version_mismatch')
                             );
 
                             if (shouldReload) {
@@ -117,13 +119,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 i18n.get('btn_webhook_help')
             );
         });
-
-        const btnGoGithub = document.getElementById('btnGoGithub');
-        if (btnGoGithub) {
-            btnGoGithub.addEventListener('click', () => {
-                chrome.tabs.create({ url: "https://github.com/kgyujin/endfield-auto-checkin" });
-            });
-        }
 
         chrome.storage.onChanged.addListener((changes) => {
             storage.get(null, (newData) => {
@@ -543,7 +538,7 @@ function checkUpdateStatus() {
             }
 
             banner.onclick = () => {
-                Modal.alert(i18n.get('update_avail_desc') + "\n\n(Folder: Extension Root)", i18n.get('update_avail_title'));
+                Modal.alert(i18n.get('update_avail_desc') + "\n\n" + i18n.get('update_folder_note'), i18n.get('update_avail_title'));
             };
         } else {
             banner.style.display = 'none';
@@ -612,7 +607,7 @@ function renderVersionInfo() {
 
             const defaultOpt = document.createElement('div');
             defaultOpt.className = 'dropdown-option selected';
-            defaultOpt.innerText = "- Select Version -";
+            defaultOpt.innerText = i18n.get('ver_select_placeholder');
             defaultOpt.dataset.value = "";
             defaultOpt.onclick = () => selectOption(defaultOpt);
             optionsContainer.appendChild(defaultOpt);

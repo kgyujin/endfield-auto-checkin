@@ -140,7 +140,7 @@ class NotificationService {
             fields: [
                 {
                     name: i18n.get('field_date'),
-                    value: new Date().toLocaleString(),
+                    value: new Date().toLocaleString(i18n.locale),
                     inline: true
                 }
             ],
